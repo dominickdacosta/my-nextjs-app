@@ -59,7 +59,11 @@ function localDateString(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export default function HouseholdBoard() {
+export default function HouseholdBoard({
+  isPreview = false,
+}: {
+  isPreview?: boolean;
+}) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [today, setToday] = useState<Date | null>(null);
   const [activeStatus, setActiveStatus] = useState<TaskStatus>("todo");
@@ -305,6 +309,11 @@ export default function HouseholdBoard() {
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-800">
             Our home
           </p>
+          {isPreview && (
+            <span className="mt-2 inline-flex rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-800">
+              Preview deployment
+            </span>
+          )}
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-emerald-950 sm:text-4xl">
             House tasks
           </h1>
