@@ -41,8 +41,13 @@ than silently using temporary serverless storage.
 2. Connect the Neon Marketplace integration and confirm `DATABASE_URL` is
    available to the deployment environment.
 3. Deploy the `main` branch. Vercel's Git integration automatically deploys
-   later pushes to the connected production branch; pull requests and other
-   branches can produce preview deployments.
+   later pushes to the connected production branch. Pushes to `develop` and
+   other non-production branches create Preview deployments when the Git
+   integration is enabled.
+4. Add `DATABASE_URL` to Vercel's Preview environment so preview deployments
+   can use Neon. Keep `main` as the Production Branch if it should remain the
+   live production site; `develop` deployments will then have their own
+   preview URLs.
 
 No separate GitHub Actions workflow is required for Vercel deployments.
 

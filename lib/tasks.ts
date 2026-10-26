@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { neon } from "@neondatabase/serverless";
+import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 
 export type TaskStatus = "todo" | "doing" | "done";
 export type TaskRepeat = "daily" | "weekly";
@@ -37,7 +37,9 @@ const dataDirectory = path.join(process.cwd(), "data");
 const tasksFile = path.join(dataDirectory, "tasks.json");
 
 let taskQueue: Promise<void> = Promise.resolve();
-let databaseClient: ReturnType<typeof neon> | undefined;
+type DatabaseClient = NeonQueryFunction<false, false>;
+
+let databaseClient: DatabaseClient | undefined;
 
 function getDatabase() {
   const connectionString = process.env.DATABASE_URL;
@@ -47,11 +49,11 @@ function getDatabase() {
     }
     return null;
   }
-  if (!databaseClient) databaseClient = neon(connectionString);
+  if (!databaseClient) databaseClient = neon<false, false>(connectionString);
   return databaseClient;
 }
 
-async function ensureDatabase(sql: ReturnType<typeof neon>): Promise<void> {
+async function ensureDatabase(sql: DatabaseClient): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS household_tasks (
       id text PRIMARY KEY,
@@ -60,7 +62,7 @@ async function ensureDatabase(sql: ReturnType<typeof neon>): Promise<void> {
   `;
 }
 
-async function readDatabaseTasks(sql: ReturnType<typeof neon>): Promise<Task[]> {
+async function readDatabaseTasks(sql: DatabaseClient): Promise<Task[]> {
   await ensureDatabase(sql);
   const rows = await sql`SELECT data FROM household_tasks`;
   return rows.map((row) => {
@@ -71,7 +73,7 @@ async function readDatabaseTasks(sql: ReturnType<typeof neon>): Promise<Task[]> 
 }
 
 async function writeDatabaseTask(
-  sql: ReturnType<typeof neon>,
+  sql: DatabaseClient,
   task: Task,
 ): Promise<void> {
   await sql`

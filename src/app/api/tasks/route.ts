@@ -29,8 +29,9 @@ export async function POST(request: Request) {
       if (body.length === 0 || body.length > 10) {
         return Response.json({ error: "Choose between 1 and 10 tasks." }, { status: 400 });
       }
-      const inputs = body.map(parseNewTask);
-      if (inputs.some((input): input is null => input === null)) {
+      const parsedInputs = body.map(parseNewTask);
+      const inputs = parsedInputs.filter((input) => input !== null);
+      if (inputs.length !== parsedInputs.length) {
         return Response.json({ error: "Task details are invalid." }, { status: 400 });
       }
       return Response.json(await createTasks(inputs), { status: 201 });
