@@ -55,6 +55,7 @@ const chorePresets = [
 type AddTaskFormProps = {
   assignees: string[];
   openSignal?: number;
+  defaultAssignee?: string;
   onCreate: (task: TaskDraft | TaskDraft[]) => Promise<void>;
 };
 
@@ -72,6 +73,7 @@ export default function AddTaskForm({
   assignees,
   onCreate,
   openSignal = 0,
+  defaultAssignee,
 }: AddTaskFormProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
@@ -102,8 +104,11 @@ export default function AddTaskForm({
   }, [open]);
 
   useEffect(() => {
-    if (openSignal > 0) setOpen(true);
-  }, [openSignal]);
+    if (openSignal > 0) {
+      setPersonChoice(defaultAssignee || unassignedChoice);
+      setOpen(true);
+    }
+  }, [openSignal, defaultAssignee]);
 
   function closeDialog() {
     setOpen(false);
@@ -180,7 +185,10 @@ export default function AddTaskForm({
       <button
         className="min-h-12 w-full rounded-xl bg-[#285943] px-5 text-base font-bold text-white shadow-sm shadow-[#285943]/15 transition hover:-translate-y-0.5 hover:bg-[#1d4533] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285943] sm:w-auto"
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setPersonChoice(defaultAssignee || unassignedChoice);
+          setOpen(true);
+        }}
       >
         <span aria-hidden="true">＋ </span>Add a task
       </button>
@@ -229,6 +237,7 @@ export default function AddTaskForm({
                 className="min-h-12 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-3 text-base"
                 list={customMode ? undefined : "household-chores"}
                 placeholder={customMode ? "What needs doing?" : "Search household chores…"}
+                autoFocus
                 value={customMode ? customTitle : taskChoice}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -278,7 +287,7 @@ export default function AddTaskForm({
                   setDue("");
                   setRepeat("");
                   setPoints(1);
-                  setPersonChoice(unassignedChoice);
+                  setPersonChoice(defaultAssignee || unassignedChoice);
                 }}
               >
                 {customMode ? "Choose a chore instead" : "＋ Create a custom task"}
