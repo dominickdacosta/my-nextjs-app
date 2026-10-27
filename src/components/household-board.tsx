@@ -303,33 +303,38 @@ export default function HouseholdBoard({
   });
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-6xl bg-gradient-to-br from-amber-50 via-orange-50 to-emerald-50 px-4 pb-10 pt-6 font-sans text-stone-950 antialiased sm:px-6 sm:pt-10">
-      <header className="mb-7 flex flex-wrap items-center justify-between gap-4">
+    <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-12 pt-6 text-[#24352c] antialiased sm:px-7 sm:pt-9 lg:px-10">
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-5 border-b border-[#e5e7df] pb-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-800">
-            Our home
-          </p>
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#285943] text-lg font-bold text-white" aria-hidden="true">
+              H
+            </span>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#627768]">
+                Home Together
+              </p>
+              <p className="mt-0.5 text-xs text-[#7b857d]">A little teamwork makes a happy home</p>
+            </div>
+          </div>
           {isPreview && (
-            <span className="mt-2 inline-flex rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-800">
+            <span className="mt-3 inline-flex rounded-full bg-[#e5eee6] px-2.5 py-1 text-xs font-bold text-[#285943]">
               Preview deployment
             </span>
           )}
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-emerald-950 sm:text-4xl">
-            House tasks
+          <h1 className="mt-5 text-3xl font-bold tracking-tight text-[#23382c] sm:text-[2.6rem]">
+            Today at home
           </h1>
-          <p className="mt-2 text-sm text-stone-600">
-            A little teamwork makes a happy home.
-          </p>
         </div>
-        <div className="flex min-w-40 items-center gap-3 rounded-2xl border border-amber-200 bg-white/80 px-4 py-3 shadow-sm">
+        <div className="flex min-w-44 items-center gap-3 rounded-2xl border border-[#e5e7df] bg-white px-4 py-3">
           <span
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-xl"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f7f0df] text-lg text-[#9b7634]"
             aria-hidden="true"
           >
-            📅
+            ◷
           </span>
           <span>
-            <span className="block text-xs font-bold uppercase tracking-widest text-amber-800">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-[#7b857d]">
               {today
                 ? today.toLocaleDateString(undefined, {
                     month: "long",
@@ -337,7 +342,7 @@ export default function HouseholdBoard({
                   })
                 : " "}
             </span>
-            <span className="mt-0.5 block font-semibold text-stone-900">
+            <span className="mt-0.5 block font-semibold text-[#293a30]">
               {today
                 ? today.toLocaleDateString(undefined, {
                     weekday: "long",
@@ -350,14 +355,14 @@ export default function HouseholdBoard({
       </header>
 
       <section
-        className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3"
+        className="mb-7 flex flex-wrap items-center gap-3 rounded-2xl border border-[#dfe8df] bg-[#e5eee6] px-4 py-3.5"
         aria-label="Family progress today"
       >
-        <span className="text-lg" aria-hidden="true">
-          🌱
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-white/80 text-base text-[#54745b]" aria-hidden="true">
+          ✓
         </span>
-        <p className="text-sm font-semibold text-emerald-950">
-          <span className="text-xs font-bold uppercase tracking-wide text-emerald-700">
+        <p className="text-sm font-semibold text-[#293a30]">
+          <span className="mr-1 text-xs font-bold uppercase tracking-wide text-[#54745b]">
             Whole family ·{" "}
           </span>
           {dueTodayCount
@@ -365,7 +370,7 @@ export default function HouseholdBoard({
             : "No tasks due today"}
         </p>
         <div
-          className="h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-emerald-100"
+          className="h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-white/80"
           role="progressbar"
           aria-label="Tasks due today completed"
           aria-valuemin={0}
@@ -373,7 +378,7 @@ export default function HouseholdBoard({
           aria-valuenow={finishedToday}
         >
           <div
-            className="h-full rounded-full bg-emerald-600 transition-all"
+            className="h-full rounded-full bg-[#588263] transition-all"
             style={{
               width: dueTodayCount
                 ? `${Math.min((finishedToday / dueTodayCount) * 100, 100)}%`
@@ -385,30 +390,30 @@ export default function HouseholdBoard({
 
       {upcomingTasks.length > 0 && (
         <section
-          className="mb-5 rounded-xl border border-sky-100 bg-sky-50/70 p-4"
+          className="mb-7 rounded-2xl border border-[#e5e7df] bg-white p-4 sm:p-5"
           aria-labelledby="upcoming-title"
         >
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-bold text-sky-950" id="upcoming-title">
+            <h2 className="text-sm font-bold text-[#293a30]" id="upcoming-title">
               Tomorrow & upcoming
             </h2>
-            <span className="text-xs text-sky-800">Next 6 chores</span>
+            <span className="text-xs text-[#7b857d]">Next 6 chores</span>
           </div>
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {upcomingTasks.map((task) => (
               <li
-                className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-white/80 px-3 py-2 text-sm"
+                className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-[#edf0e9] bg-[#fbfbf9] px-3 py-2.5 text-sm"
                 key={task.id}
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-semibold text-stone-800">
+                  <span className="block truncate font-semibold text-[#293a30]">
                     {task.title}
                   </span>
-                  <span className="block truncate text-xs text-stone-500">
+                  <span className="block truncate text-xs text-[#7b857d]">
                     {task.assignee ?? "Anyone"}
                   </span>
                 </span>
-                <span className="shrink-0 rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">
+                <span className="shrink-0 rounded-full bg-[#e5eee6] px-2.5 py-1 text-xs font-semibold text-[#285943]">
                   {task.due ===
                   localDateString(
                     new Date(
@@ -432,11 +437,11 @@ export default function HouseholdBoard({
       <section aria-labelledby="board-title">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
-              One thing at a time
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#718074]">
+              Shared family plan
             </p>
             <h2
-              className="mt-1 text-2xl font-bold tracking-tight text-emerald-950 sm:text-3xl"
+              className="mt-1 text-2xl font-bold tracking-tight text-[#23382c] sm:text-3xl"
               id="board-title"
             >
               The task board
@@ -451,22 +456,22 @@ export default function HouseholdBoard({
 
         {error && (
           <p
-            className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"
+            className="mt-4 rounded-xl border border-[#f1d6d1] bg-[#fff4f1] p-3 text-sm text-[#9b493c]"
             role="alert"
           >
             {error}
           </p>
         )}
 
-        <div className="my-5 flex flex-wrap items-center gap-3">
+        <div className="my-5 flex flex-wrap items-center gap-3 rounded-2xl border border-[#e5e7df] bg-white p-3">
           <label
-            className="text-sm font-semibold text-stone-800"
+            className="text-sm font-semibold text-[#46574b]"
             htmlFor="assignee-filter"
           >
             Who
           </label>
           <select
-            className="min-h-11 min-w-36 rounded-lg border border-stone-300 bg-white px-3 text-base"
+            className="min-h-11 min-w-36 rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-3 text-sm text-[#293a30] focus:border-[#73917a]"
             id="assignee-filter"
             value={assigneeFilter}
             onChange={(event) => setAssigneeFilter(event.target.value)}
@@ -480,15 +485,16 @@ export default function HouseholdBoard({
             {hasUnassignedTasks && <option value="">Unassigned</option>}
           </select>
           <div
-            className="flex rounded-lg border border-stone-300 bg-white p-1"
+            className="flex flex-wrap rounded-full border border-[#e5e7df] bg-[#f7f7f3] p-1"
+            role="group"
             aria-label="Filter tasks by due date"
           >
             {(["all", "today", "overdue"] as const).map((filter) => (
               <button
-                className={`min-h-9 rounded-md px-3 text-sm font-semibold ${
+                className={`min-h-9 rounded-full px-3 text-sm font-semibold ${
                   dueFilter === filter
-                    ? "bg-emerald-800 text-white"
-                    : "text-stone-700 hover:bg-stone-100"
+                    ? "bg-[#285943] text-white shadow-sm"
+                    : "text-[#5d6b60] hover:bg-white"
                 }`}
                 key={filter}
                 type="button"
@@ -506,7 +512,7 @@ export default function HouseholdBoard({
         </div>
 
         <nav
-          className="my-4 grid grid-cols-3 gap-2 md:hidden"
+          className="my-4 grid grid-cols-3 gap-2 lg:hidden"
           role="tablist"
           aria-label="Task status"
         >
@@ -519,10 +525,10 @@ export default function HouseholdBoard({
               <button
                 key={status.value}
                 id={`tab-${status.value}`}
-                className={`min-h-12 rounded-xl px-2 text-sm font-bold ${
+                className={`min-h-12 rounded-xl px-2 text-sm font-bold transition-colors ${
                   selected
-                    ? "bg-emerald-800 text-white shadow-sm"
-                    : "border border-stone-300 bg-white text-stone-700"
+                    ? "bg-[#285943] text-white shadow-sm"
+                    : "border border-[#e5e7df] bg-white text-[#526156] hover:bg-[#f1f3ed]"
                 }`}
                 type="button"
                 role="tab"
@@ -538,11 +544,12 @@ export default function HouseholdBoard({
         </nav>
 
         {loading && tasks.length === 0 ? (
-          <p className="py-8 text-center text-sm text-stone-500">
-            Loading tasks…
-          </p>
+          <div className="rounded-2xl border border-[#e5e7df] bg-white px-5 py-10 text-center text-sm text-[#68776d]" role="status">
+            <span className="mx-auto mb-3 block h-6 w-6 animate-spin rounded-full border-2 border-[#dce6db] border-t-[#285943]" aria-hidden="true" />
+            Loading your family tasks…
+          </div>
         ) : (
-          <div className="grid items-start gap-4 md:mt-6 md:grid-cols-3">
+          <div className="grid items-start gap-4 lg:mt-6 lg:grid-cols-3">
             {statuses.map((status) => (
               <TaskColumn
                 key={status.value}
@@ -563,12 +570,12 @@ export default function HouseholdBoard({
 
       {undoAction && (
         <div
-          className="fixed inset-x-3 bottom-4 z-20 mx-auto flex max-w-lg items-center justify-between gap-4 rounded-xl bg-stone-900 px-4 py-3 text-sm text-white shadow-xl sm:inset-x-auto sm:bottom-6"
+          className="fixed inset-x-3 bottom-4 z-20 mx-auto flex max-w-lg items-center justify-between gap-4 rounded-xl bg-[#24352c] px-4 py-3 text-sm text-white shadow-xl sm:inset-x-auto sm:bottom-6"
           role="status"
         >
           <span>{undoAction.message}</span>
           <button
-            className="min-h-11 shrink-0 rounded-lg bg-white px-4 font-bold text-stone-900 hover:bg-amber-100"
+            className="min-h-11 shrink-0 rounded-lg bg-white px-4 font-bold text-[#285943] hover:bg-[#e5eee6]"
             type="button"
             onClick={() => void undo()}
           >
@@ -578,40 +585,40 @@ export default function HouseholdBoard({
       )}
 
       <section
-        className="mt-5 rounded-2xl border border-stone-200 bg-white/75 p-4 shadow-sm sm:p-5"
+        className="mt-7 rounded-2xl border border-[#e5e7df] bg-white p-4 sm:p-5"
         aria-labelledby="archive-title"
       >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-stone-500">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#7b857d]">
               Every little win
             </p>
             <h2
-              className="mt-1 text-lg font-bold text-emerald-950"
+              className="mt-1 text-lg font-bold text-[#293a30]"
               id="archive-title"
             >
               Done archive
             </h2>
           </div>
-          <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">
+          <span className="rounded-full bg-[#f1f0eb] px-3 py-1 text-xs font-semibold text-[#68776d]">
             {olderCompletions.length}
           </span>
         </div>
         {olderCompletions.length ? (
-          <details className="mt-2 border-t border-stone-100 pt-2">
-            <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold text-emerald-800 hover:text-emerald-950">
+          <details className="mt-2 border-t border-[#edf0e9] pt-2">
+            <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold text-[#285943] hover:text-[#1d4533]">
               Show older completions ({olderCompletions.length})
             </summary>
-            <ul className="divide-y divide-stone-100">
+            <ul className="divide-y divide-[#edf0e9]">
               {olderCompletions.map((completion, index) => (
                 <li
                   className="flex items-center justify-between gap-3 py-2 text-sm"
                   key={`${completion.taskId}-${completion.completedAt}-${index}`}
                 >
-                  <span className="min-w-0 truncate text-stone-700">
+                  <span className="min-w-0 truncate text-[#46574b]">
                     ✓ {completion.title}
                   </span>
-                  <span className="shrink-0 text-xs text-stone-500">
+                  <span className="shrink-0 text-xs text-[#7b857d]">
                     {completion.assignee ? `${completion.assignee} · ` : ""}
                     {new Date(
                       `${completion.completedOn}T00:00:00`,
@@ -626,32 +633,36 @@ export default function HouseholdBoard({
             </ul>
           </details>
         ) : (
-          <p className="mt-3 text-sm text-stone-600">
+          <p className="mt-3 text-sm text-[#68776d]">
             No older completions.
           </p>
         )}
       </section>
 
       <section
-        className="mt-8 rounded-2xl border border-amber-200 bg-white/75 p-4 shadow-sm sm:p-5"
+        className="mt-7 rounded-2xl border border-[#eadfca] bg-white p-4 sm:p-5"
         aria-labelledby="points-title"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-amber-800">
-              A little thank-you
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#99743a]">
+              Small wins add up
             </p>
-            <h2 className="mt-1 text-lg font-bold text-emerald-950" id="points-title">
-              ⭐ Good deeds club
+            <h2 className="mt-1 text-lg font-bold text-[#293a30]" id="points-title">
+              <span className="mr-1 text-[#c09239]" aria-hidden="true">★</span>
+              Good Deeds Club
             </h2>
+            <p className="mt-1 text-xs text-[#7b857d]">
+              Every helpful moment deserves a little recognition.
+            </p>
           </div>
-          <div className="flex rounded-lg border border-amber-200 bg-white p-1">
+          <div className="flex rounded-full border border-[#eadfca] bg-[#fbf8f1] p-1" role="group" aria-label="Scoreboard period">
             {(["week", "all"] as const).map((range) => (
               <button
-                className={`min-h-9 rounded-md px-3 text-sm font-semibold ${
+                className={`min-h-9 rounded-full px-3 text-sm font-semibold ${
                   scoreRange === range
-                    ? "bg-amber-100 text-amber-950"
-                    : "text-stone-600 hover:bg-stone-50"
+                    ? "bg-[#f0e5c9] text-[#634d25]"
+                    : "text-[#746b59] hover:bg-white"
                 }`}
                 key={range}
                 type="button"
@@ -666,22 +677,22 @@ export default function HouseholdBoard({
             <ul className="flex flex-wrap gap-2">
               {leaderboard.map(([assignee, points]) => (
                 <li
-                  className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-2 text-sm"
+                  className="flex items-center gap-2 rounded-xl border border-[#efe5d2] bg-[#fbf8f1] px-3 py-2 text-sm"
                   key={assignee}
                 >
-                  <span aria-hidden="true">
-                    {points === topScore ? "⭐" : "🌱"}
+                  <span className="text-[#c09239]" aria-hidden="true">
+                    {points === topScore ? "★" : "✦"}
                   </span>
-                  <span className="font-semibold text-stone-800">{assignee}</span>
-                  <span className="font-bold text-amber-900">
+                  <span className="font-semibold text-[#46574b]">{assignee}</span>
+                  <span className="font-bold text-[#80622d]">
                     {points} {points === 1 ? "pt" : "pts"}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-stone-600">
-              The first good deed earns the first star!
+            <p className="text-sm text-[#746b59]">
+              The first good deed earns the first star.
             </p>
           )}
         </div>
