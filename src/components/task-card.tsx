@@ -124,13 +124,13 @@ export default function TaskCard({
   }
 
   return (
-    <article className="relative rounded-xl border border-stone-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <article className="relative rounded-2xl border border-[#e5e7df] bg-white shadow-[0_1px_2px_rgba(36,53,44,0.04)] transition-all hover:-translate-y-0.5 hover:border-[#cbd8cc] hover:shadow-[0_8px_24px_rgba(36,53,44,0.08)]">
       {editing ? (
         <form className="space-y-3 p-4" onSubmit={saveChanges}>
           <label className="block">
-            <span className="mb-1 block text-sm font-medium">Task</span>
+            <span className="mb-1 block text-sm font-semibold text-[#46574b]">Task</span>
             <input
-              className="min-h-11 w-full rounded-lg border border-emerald-200 px-3 text-base"
+              className="min-h-11 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-3 text-base"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               maxLength={160}
@@ -139,36 +139,36 @@ export default function TaskCard({
           </label>
           <div className="grid grid-cols-2 gap-2">
             <label>
-              <span className="mb-1 block text-sm font-medium">Who</span>
+              <span className="mb-1 block text-sm font-semibold text-[#46574b]">Who</span>
               <input
-                className="min-h-11 w-full rounded-lg border border-sky-200 px-3 text-base"
+                className="min-h-11 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-3 text-base"
                 value={assignee}
                 onChange={(event) => setAssignee(event.target.value)}
                 maxLength={80}
               />
             </label>
             <label>
-              <span className="mb-1 block text-sm font-medium">Room</span>
+              <span className="mb-1 block text-sm font-semibold text-[#46574b]">Room</span>
               <input
-                className="min-h-11 w-full rounded-lg border border-teal-200 px-3 text-base"
+                className="min-h-11 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-3 text-base"
                 value={room}
                 onChange={(event) => setRoom(event.target.value)}
                 maxLength={80}
               />
             </label>
             <label>
-              <span className="mb-1 block text-sm font-medium">Due date</span>
+              <span className="mb-1 block text-sm font-semibold text-[#46574b]">Due date</span>
               <input
-                className="min-h-11 w-full rounded-lg border border-orange-200 px-2 text-base"
+                className="min-h-11 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-2 text-base"
                 type="date"
                 value={due}
                 onChange={(event) => setDue(event.target.value)}
               />
             </label>
             <label>
-              <span className="mb-1 block text-sm font-medium">Repeat</span>
+              <span className="mb-1 block text-sm font-semibold text-[#46574b]">Repeat</span>
               <select
-                className="min-h-11 w-full rounded-lg border border-emerald-200 bg-white px-2 text-base"
+                className="min-h-11 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-2 text-base"
                 value={repeat}
                 onChange={(event) =>
                   setRepeat(event.target.value as TaskRepeat | "")
@@ -181,9 +181,9 @@ export default function TaskCard({
             </label>
           </div>
           <label className="block">
-            <span className="mb-1 block text-sm font-medium">Points</span>
+            <span className="mb-1 block text-sm font-semibold text-[#46574b]">Points</span>
             <select
-              className="min-h-11 w-full rounded-lg border border-violet-200 bg-white px-3 text-base"
+              className="min-h-11 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-3 text-base"
               value={points}
               onChange={(event) =>
                 setPoints(Number(event.target.value) as TaskPoints)
@@ -195,20 +195,20 @@ export default function TaskCard({
             </select>
           </label>
           {editError && (
-            <p className="text-sm text-rose-700" role="alert">
+            <p className="text-sm text-[#9b493c]" role="alert">
               {editError}
             </p>
           )}
           <div className="flex gap-2">
             <button
-              className="min-h-11 flex-1 rounded-lg bg-emerald-700 px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+              className="min-h-11 flex-1 rounded-xl bg-[#285943] px-3 text-sm font-semibold text-white hover:bg-[#1d4533] disabled:opacity-60"
               type="submit"
               disabled={saving}
             >
               {saving ? "Saving…" : "Save"}
             </button>
             <button
-              className="min-h-11 rounded-lg border border-stone-300 px-3 text-sm font-medium"
+              className="min-h-11 rounded-xl border border-[#dfe4dc] px-3 text-sm font-medium text-[#526156] hover:bg-[#f7f7f3]"
               type="button"
               onClick={() => setEditing(false)}
               disabled={saving}
@@ -220,21 +220,26 @@ export default function TaskCard({
       ) : (
         <>
           <div className="p-4 pb-2">
-            <h3 className="break-words text-base font-bold leading-snug text-stone-900">
+            <h3 className="break-words text-[15px] font-bold leading-snug text-[#293a30]">
               {displayedTask.title}
             </h3>
-            <div className="mt-1 flex items-start justify-between gap-2">
-              <div className="min-w-0 text-sm text-stone-600">
-                <p className="truncate">{displayedTask.assignee ?? "Anyone"}</p>
+            <div className="mt-3 flex items-start justify-between gap-2">
+              <div className="min-w-0 text-sm text-[#526156]">
+                <p className="flex items-center gap-2">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#e5eee6] text-[11px] font-bold text-[#285943]" aria-hidden="true">
+                    {displayedTask.assignee?.slice(0, 1).toUpperCase() ?? "•"}
+                  </span>
+                  <span className="truncate">{displayedTask.assignee ?? "Anyone"}</span>
+                </p>
                 {displayedTask.room && (
-                  <p className="truncate text-xs text-stone-500">
+                  <p className="mt-1 truncate pl-9 text-xs text-[#7b857d]">
                     {roomEmoji(displayedTask.room)} {displayedTask.room}
                   </p>
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
               <span
-                className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-900"
+                className="rounded-full bg-[#f7f0df] px-2.5 py-1 text-xs font-bold text-[#80622d]"
                 aria-label={`${displayedTask.points ?? 1} task points`}
                 title="Earn these points when you finish the task"
               >
@@ -243,14 +248,14 @@ export default function TaskCard({
               </span>
               <details className="group relative">
                 <summary
-                  className="grid min-h-11 min-w-11 cursor-pointer list-none place-items-center rounded-lg text-lg text-stone-600 hover:bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
+                  className="grid min-h-11 min-w-11 cursor-pointer list-none place-items-center rounded-xl text-lg text-[#68776d] hover:bg-[#f1f3ed]"
                   aria-label={`More options for ${displayedTask.title}`}
                 >
                   ⋯
                 </summary>
-                <div className="absolute right-0 top-10 z-10 w-40 rounded-xl border border-stone-200 bg-white p-1 shadow-lg">
+                <div className="absolute right-0 top-10 z-10 w-40 rounded-xl border border-[#e5e7df] bg-white p-1 shadow-lg">
                   <button
-                    className="min-h-11 w-full rounded-lg px-3 text-left text-sm font-medium hover:bg-stone-100"
+                    className="min-h-11 w-full rounded-lg px-3 text-left text-sm font-medium text-[#46574b] hover:bg-[#f7f7f3]"
                     type="button"
                     onClick={startEditing}
                   >
@@ -258,18 +263,18 @@ export default function TaskCard({
                   </button>
                   {confirmDelete ? (
                     <>
-                      <p className="px-3 py-2 text-xs text-stone-600">
+                      <p className="px-3 py-2 text-xs text-[#68776d]">
                         Delete this task?
                       </p>
                       <button
-                        className="min-h-11 w-full rounded-lg px-3 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                        className="min-h-11 w-full rounded-lg px-3 text-left text-sm font-semibold text-[#9b493c] hover:bg-[#fff4f1]"
                         type="button"
                         onClick={() => onDelete(task.id)}
                       >
                         Confirm delete
                       </button>
                       <button
-                        className="min-h-11 w-full rounded-lg px-3 text-left text-sm text-stone-700 hover:bg-stone-100"
+                        className="min-h-11 w-full rounded-lg px-3 text-left text-sm text-[#526156] hover:bg-[#f7f7f3]"
                         type="button"
                         onClick={() => setConfirmDelete(false)}
                       >
@@ -278,7 +283,7 @@ export default function TaskCard({
                     </>
                   ) : (
                     <button
-                      className="min-h-11 w-full rounded-lg px-3 text-left text-sm font-medium text-rose-700 hover:bg-rose-50"
+                      className="min-h-11 w-full rounded-lg px-3 text-left text-sm font-medium text-[#9b493c] hover:bg-[#fff4f1]"
                       type="button"
                       onClick={() => setConfirmDelete(true)}
                     >
@@ -338,10 +343,10 @@ export default function TaskCard({
               </span>
             )}
           </div>
-          <div className="border-t border-stone-100 px-4 py-3">
+          <div className="border-t border-[#f0f1ec] px-4 py-3">
             {displayedTask.status === "todo" ? (
               <button
-                className="min-h-11 w-full rounded-lg bg-emerald-700 px-3 text-sm font-bold text-white hover:bg-emerald-800"
+                className="min-h-11 w-full rounded-xl bg-[#285943] px-3 text-sm font-bold text-white hover:bg-[#1d4533]"
                 type="button"
                 onClick={() => onStatusChange(task.id, "doing")}
               >
@@ -350,14 +355,14 @@ export default function TaskCard({
             ) : displayedTask.status === "doing" ? (
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <button
-                  className="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold text-white hover:bg-emerald-800"
+                  className="min-h-11 rounded-xl bg-[#285943] px-3 text-sm font-bold text-white hover:bg-[#1d4533]"
                   type="button"
                   onClick={() => onStatusChange(task.id, "done")}
                 >
                   Mark done ✓
                 </button>
                 <button
-                  className="min-h-11 rounded-lg px-3 text-sm font-semibold text-stone-600 hover:bg-stone-100"
+                  className="min-h-11 rounded-xl px-3 text-sm font-semibold text-[#68776d] hover:bg-[#f1f3ed]"
                   type="button"
                   onClick={() => onStatusChange(task.id, "todo")}
                 >
@@ -366,7 +371,7 @@ export default function TaskCard({
               </div>
             ) : (
               <button
-                className="min-h-9 rounded-md px-2 text-xs font-semibold text-stone-600 hover:bg-stone-100"
+                className="min-h-9 rounded-lg px-2 text-xs font-semibold text-[#68776d] hover:bg-[#f1f3ed]"
                 type="button"
                 onClick={() => onStatusChange(task.id, "todo")}
               >

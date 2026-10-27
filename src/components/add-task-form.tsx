@@ -55,6 +55,7 @@ const chorePresets = [
 type AddTaskFormProps = {
   assignees: string[];
   openSignal?: number;
+  defaultAssignee?: string;
   onCreate: (task: TaskDraft | TaskDraft[]) => Promise<void>;
 };
 
@@ -72,6 +73,7 @@ export default function AddTaskForm({
   assignees,
   onCreate,
   openSignal = 0,
+  defaultAssignee,
 }: AddTaskFormProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
@@ -102,8 +104,11 @@ export default function AddTaskForm({
   }, [open]);
 
   useEffect(() => {
-    if (openSignal > 0) setOpen(true);
-  }, [openSignal]);
+    if (openSignal > 0) {
+      setPersonChoice(defaultAssignee || unassignedChoice);
+      setOpen(true);
+    }
+  }, [openSignal, defaultAssignee]);
 
   function closeDialog() {
     setOpen(false);
@@ -178,9 +183,12 @@ export default function AddTaskForm({
   return (
     <>
       <button
-        className="min-h-12 w-full rounded-2xl bg-emerald-700 px-5 text-base font-bold text-white shadow-md shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-800 sm:w-auto"
+        className="min-h-12 w-full rounded-xl bg-[#285943] px-5 text-base font-bold text-white shadow-sm shadow-[#285943]/15 transition hover:-translate-y-0.5 hover:bg-[#1d4533] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285943] sm:w-auto"
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setPersonChoice(defaultAssignee || unassignedChoice);
+          setOpen(true);
+        }}
       >
         <span aria-hidden="true">＋ </span>Add a task
       </button>
@@ -188,7 +196,7 @@ export default function AddTaskForm({
       {open && (
         <dialog
           ref={dialog}
-          className="m-0 max-h-full w-full max-w-none bg-transparent p-0 backdrop:bg-stone-950/50 sm:fixed sm:inset-0 sm:m-auto sm:w-[min(100%-2rem,32rem)]"
+          className="m-0 max-h-full w-full max-w-none bg-transparent p-0 backdrop:bg-[#24352c]/45 sm:fixed sm:inset-0 sm:m-auto sm:w-[min(100%-2rem,32rem)]"
           aria-labelledby="add-task-title"
           onCancel={(event) => {
             event.preventDefault();
@@ -196,23 +204,23 @@ export default function AddTaskForm({
           }}
         >
           <form
-            className="max-h-[90dvh] space-y-4 overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-6"
+            className="max-h-[90dvh] space-y-4 overflow-y-auto rounded-t-3xl border border-[#e5e7df] bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-6"
             onSubmit={submit}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-700">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#718074]">
                   New household chore
                 </p>
                 <h2
-                  className="mt-1 text-2xl font-bold tracking-tight text-emerald-950"
+                  className="mt-1 text-2xl font-bold tracking-tight text-[#23382c]"
                   id="add-task-title"
                 >
                   Add a task
                 </h2>
               </div>
               <button
-                className="grid min-h-11 min-w-11 place-items-center rounded-full bg-stone-100 text-xl text-stone-700 hover:bg-stone-200"
+                className="grid min-h-11 min-w-11 place-items-center rounded-full bg-[#f1f0eb] text-xl text-[#526156] hover:bg-[#e8e9e2]"
                 type="button"
                 onClick={closeDialog}
                 aria-label="Close add task"
@@ -222,13 +230,14 @@ export default function AddTaskForm({
             </div>
 
             <label className="block">
-              <span className="mb-1 block text-sm font-semibold text-stone-800">
+              <span className="mb-1 block text-sm font-semibold text-[#46574b]">
                 {customMode ? "Custom task" : "Search or choose a chore"}
               </span>
               <input
-                className="min-h-12 w-full rounded-xl border border-emerald-200 bg-emerald-50/50 px-3 text-base"
+                className="min-h-12 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-3 text-base"
                 list={customMode ? undefined : "household-chores"}
                 placeholder={customMode ? "What needs doing?" : "Search household chores…"}
+                autoFocus
                 value={customMode ? customTitle : taskChoice}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -268,7 +277,7 @@ export default function AddTaskForm({
                 </datalist>
               )}
               <button
-                className="mt-1 min-h-9 text-sm font-semibold text-emerald-800 underline-offset-2 hover:underline"
+                className="mt-1 min-h-9 text-sm font-semibold text-[#285943] underline-offset-2 hover:underline"
                 type="button"
                 onClick={() => {
                   setCustomMode(!customMode);
@@ -278,7 +287,7 @@ export default function AddTaskForm({
                   setDue("");
                   setRepeat("");
                   setPoints(1);
-                  setPersonChoice(unassignedChoice);
+                  setPersonChoice(defaultAssignee || unassignedChoice);
                 }}
               >
                 {customMode ? "Choose a chore instead" : "＋ Create a custom task"}
@@ -286,11 +295,11 @@ export default function AddTaskForm({
             </label>
 
             {!assignBothKids && <label className="block">
-              <span className="mb-1 block text-sm font-semibold text-stone-800">
+              <span className="mb-1 block text-sm font-semibold text-[#46574b]">
                 Who’s doing it?
               </span>
               <select
-                className="min-h-12 w-full rounded-xl border border-sky-200 bg-sky-50/50 px-3 text-base"
+                className="min-h-12 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-3 text-base"
                 value={personChoice}
                 onChange={(event) => setPersonChoice(event.target.value)}
               >
@@ -306,12 +315,12 @@ export default function AddTaskForm({
 
             {!assignBothKids && personChoice === newPersonChoice && (
               <label className="block">
-                <span className="mb-1 block text-sm font-semibold text-stone-800">
+                <span className="mb-1 block text-sm font-semibold text-[#46574b]">
                   Person’s name
                 </span>
                 <input
                   autoFocus
-                  className="min-h-12 w-full rounded-xl border border-sky-200 px-3 text-base"
+                  className="min-h-12 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-3 text-base"
                   name="newPerson"
                   type="text"
                   placeholder="Enter a name"
@@ -321,7 +330,7 @@ export default function AddTaskForm({
               </label>
             )}
 
-            <label className="flex min-h-11 items-center gap-3 rounded-xl bg-sky-50 px-3 text-sm font-semibold text-sky-950">
+            <label className="flex min-h-11 items-center gap-3 rounded-xl bg-[#e5eee6] px-3 text-sm font-semibold text-[#285943]">
               <input
                 className="h-5 w-5 accent-emerald-700"
                 type="checkbox"
@@ -333,11 +342,11 @@ export default function AddTaskForm({
 
             <div className="grid grid-cols-2 gap-3">
               <label>
-                <span className="mb-1 block text-sm font-semibold text-stone-800">
+                <span className="mb-1 block text-sm font-semibold text-[#46574b]">
                   Due date
                 </span>
                 <input
-                  className="min-h-12 w-full rounded-xl border border-orange-200 px-2 text-base"
+                  className="min-h-12 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-2 text-base"
                   name="due"
                   type="date"
                   value={due}
@@ -345,11 +354,11 @@ export default function AddTaskForm({
                 />
               </label>
               <label>
-                <span className="mb-1 block text-sm font-semibold text-stone-800">
+                <span className="mb-1 block text-sm font-semibold text-[#46574b]">
                   Room
                 </span>
                 <input
-                  className="min-h-12 w-full rounded-xl border border-teal-200 px-3 text-base"
+                  className="min-h-12 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-3 text-base"
                   value={room}
                   onChange={(event) => setRoom(event.target.value)}
                   maxLength={80}
@@ -358,11 +367,11 @@ export default function AddTaskForm({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <label>
-                <span className="mb-1 block text-sm font-semibold text-stone-800">
+                <span className="mb-1 block text-sm font-semibold text-[#46574b]">
                   Repeat
                 </span>
                 <select
-                  className="min-h-12 w-full rounded-xl border border-emerald-200 bg-white px-2 text-base"
+                  className="min-h-12 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfbf9] px-2 text-base"
                   name="repeat"
                   value={repeat}
                   onChange={(event) =>
@@ -377,11 +386,11 @@ export default function AddTaskForm({
             </div>
 
             <label className="block">
-              <span className="mb-1 block text-sm font-semibold text-stone-800">
+              <span className="mb-1 block text-sm font-semibold text-[#46574b]">
                 How much of a challenge?
               </span>
               <select
-                className="min-h-12 w-full rounded-xl border border-violet-200 bg-violet-50/50 px-3 text-base"
+                className="min-h-12 w-full rounded-xl border border-[#eadfca] bg-[#fbf8f1] px-3 text-base"
                 name="points"
                 value={points}
                 onChange={(event) =>
@@ -395,21 +404,21 @@ export default function AddTaskForm({
             </label>
 
             {error && (
-              <p className="text-sm text-rose-700" role="alert">
+              <p className="text-sm text-[#9b493c]" role="alert">
                 {error}
               </p>
             )}
 
             <div className="flex gap-3 pt-1">
               <button
-                className="min-h-12 flex-1 rounded-xl bg-emerald-700 px-4 font-bold text-white hover:bg-emerald-800 disabled:opacity-60"
+                className="min-h-12 flex-1 rounded-xl bg-[#285943] px-4 font-bold text-white hover:bg-[#1d4533] disabled:opacity-60"
                 type="submit"
                 disabled={saving}
               >
                 {saving ? "Adding…" : "Add task"}
               </button>
               <button
-                className="min-h-12 rounded-xl border border-stone-300 px-4 font-semibold text-stone-700 hover:bg-stone-50"
+                className="min-h-12 rounded-xl border border-[#dfe4dc] px-4 font-semibold text-[#526156] hover:bg-[#f7f7f3]"
                 type="button"
                 onClick={closeDialog}
                 disabled={saving}
