@@ -1,10 +1,5 @@
-import ComingSoon from "@/components/coming-soon";
+import FoodLogPage from "@/components/food-log-page";
 
 export default function FoodPage() {
-  return (
-    <ComingSoon
-      title="Food"
-      description="Your meals and nutrition summaries will be collected here."
-    />
-  );
+  return <FoodLogPage />;
 }

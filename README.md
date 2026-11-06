@@ -31,6 +31,10 @@ npm run db:migrate
 npm run db:seed
 ```
 
+Food logging supports manual entries and recent-food search by default. Set
+`FDC_API_KEY` to enable USDA FoodData Central search; the key is used only by
+the server-side search route.
+
 `npm run db:studio` opens Drizzle Studio. To load 30 days of sample data for an
 existing, onboarded development account, set `DEV_SEED_USER_ID` to that account
 ID and run `npm run db:seed:dev`. The development seed refuses to run when

@@ -86,6 +86,13 @@ export default function TodayDashboard() {
   const waterGoal = data.goals?.waterMl ?? 0;
   const waterProgress =
     waterGoal > 0 ? Math.min(data.water.totalMl / waterGoal, 1) : 0;
+  const nutrition = data.food.reduce(
+    (totals, entry) => ({
+      kcal: totals.kcal + entry.kcal * entry.servings,
+      proteinG: totals.proteinG + (entry.proteinG ?? 0) * entry.servings,
+    }),
+    { kcal: 0, proteinG: 0 },
+  );
   const weight = data.weight?.weightKg;
   const dateLabel = new Intl.DateTimeFormat(undefined, {
     weekday: "long",
@@ -235,14 +242,26 @@ export default function TodayDashboard() {
         ) : (
           <MetricCard
             title="Calories"
-            value="Ready when you are"
-            detail="Food logging is coming soon"
+            value={`${Math.round(nutrition.kcal)} / ${data.goals?.caloriesKcal ?? "—"} kcal`}
+            detail={data.goals ? "Daily target" : "Log meals to see your total"}
+            progress={
+              data.goals?.caloriesKcal
+                ? Math.min(nutrition.kcal / data.goals.caloriesKcal, 1)
+                : undefined
+            }
+            progressLabel="Calorie goal progress"
           />
         )}
         <MetricCard
           title="Protein"
-          value="—"
-          detail={data.goals ? `Daily goal ${data.goals.proteinG} g` : "Set a daily target"}
+          value={`${Math.round(nutrition.proteinG)} g`}
+          detail={data.goals ? `of ${data.goals.proteinG} g` : "Daily protein"}
+          progress={
+            data.goals?.proteinG
+              ? Math.min(nutrition.proteinG / data.goals.proteinG, 1)
+              : undefined
+          }
+          progressLabel="Protein goal progress"
         />
         <MetricCard
           title="Water"
@@ -511,7 +530,7 @@ export default function TodayDashboard() {
   );
 }
 
-function DateSwitcher({
+export function DateSwitcher({
   date,
   dateLabel,
   disabledNext,

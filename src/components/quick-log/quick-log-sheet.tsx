@@ -39,6 +39,7 @@ async function getLogDate(date: string | null): Promise<string> {
 export default function QuickLogSheet({
   date,
   initialKind,
+  onFoodClick,
   onClose,
   onSubmit,
   open,
@@ -46,6 +47,7 @@ export default function QuickLogSheet({
 }: {
   date: string | null;
   initialKind: "weight" | "water" | "mood" | null;
+  onFoodClick: () => void;
   onClose: () => void;
   onSubmit: SaveLog;
   open: boolean;
@@ -102,6 +104,10 @@ export default function QuickLogSheet({
   }
 
   function chooseKind(nextKind: LogKind) {
+    if (nextKind === "food") {
+      onFoodClick();
+      return;
+    }
     setKind(nextKind);
     setError("");
     if (nextKind === "water") {

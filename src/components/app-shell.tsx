@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { APP_NAME } from "@/lib/constants";
@@ -47,6 +47,7 @@ export default function AppShell({
   isPreview,
 }: Readonly<{ children: React.ReactNode; isPreview: boolean }>) {
   const pathname = usePathname();
+  const router = useRouter();
   const { mutate } = useSWRConfig();
   const { data: profile } = useSWR<{ unitSystem: UnitSystem }>(
     "/api/profile",
@@ -185,6 +186,11 @@ export default function AppShell({
       <QuickLogSheet
         date={selectedDate}
         initialKind={initialLogKind}
+        onFoodClick={() => {
+          setQuickLogOpen(false);
+          setInitialLogKind(null);
+          router.push("/food");
+        }}
         onClose={() => {
           setQuickLogOpen(false);
           setInitialLogKind(null);

@@ -24,6 +24,21 @@ export type DayCheckin = {
   soreness?: number | null;
 };
 
+export type DayFoodEntry = {
+  id: string;
+  loggedOn: string;
+  loggedAt: string;
+  meal: "breakfast" | "lunch" | "dinner" | "snack";
+  name: string;
+  servings: number;
+  kcal: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+  notes: string | null;
+};
+
 export type DayPayload = {
   date: string;
   profile: {
@@ -35,6 +50,9 @@ export type DayPayload = {
   goals: {
     caloriesKcal: number;
     proteinG: number;
+    carbsG: number;
+    fatG: number;
+    fiberG: number;
     waterMl: number;
     steps: number;
     activeMinutes: number;
@@ -46,7 +64,7 @@ export type DayPayload = {
   weight: DayMeasurement | null;
   checkin: DayCheckin | null;
   activity: { steps: number; activeMinutes: number; distanceM: number } | null;
-  food: unknown[];
+  food: DayFoodEntry[];
   workouts: unknown[];
   sleep: { durationMin: number | null } | null;
 };
