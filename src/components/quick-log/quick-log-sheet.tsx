@@ -8,6 +8,7 @@ import {
   type UnitSystem,
 } from "@/lib/health/units";
 import type { QuickLogInput } from "@/lib/health/day";
+import type { TrainingType } from "@/lib/health/workouts";
 
 const logOptions = [
   { kind: "food", label: "Food", icon: "🍽" },
@@ -40,6 +41,7 @@ export default function QuickLogSheet({
   date,
   initialKind,
   onFoodClick,
+  onTrainClick,
   onClose,
   onSubmit,
   open,
@@ -48,6 +50,7 @@ export default function QuickLogSheet({
   date: string | null;
   initialKind: "weight" | "water" | "mood" | null;
   onFoodClick: () => void;
+  onTrainClick: (type: TrainingType) => void;
   onClose: () => void;
   onSubmit: SaveLog;
   open: boolean;
@@ -106,6 +109,10 @@ export default function QuickLogSheet({
   function chooseKind(nextKind: LogKind) {
     if (nextKind === "food") {
       onFoodClick();
+      return;
+    }
+    if (nextKind === "workout" || nextKind === "cardio") {
+      onTrainClick(nextKind === "workout" ? "strength" : "cardio");
       return;
     }
     setKind(nextKind);

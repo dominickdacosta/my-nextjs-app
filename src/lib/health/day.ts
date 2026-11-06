@@ -39,6 +39,18 @@ export type DayFoodEntry = {
   notes: string | null;
 };
 
+export type DayWorkout = {
+  id: string;
+  loggedOn: string;
+  loggedAt: string;
+  type: "strength" | "cardio" | "walk" | "run" | "other";
+  title: string | null;
+  durationMin: number | null;
+  distanceM: number | null;
+  steps: number | null;
+  caloriesBurned: number | null;
+};
+
 export type DayPayload = {
   date: string;
   profile: {
@@ -65,7 +77,7 @@ export type DayPayload = {
   checkin: DayCheckin | null;
   activity: { steps: number; activeMinutes: number; distanceM: number } | null;
   food: DayFoodEntry[];
-  workouts: unknown[];
+  workouts: DayWorkout[];
   sleep: { durationMin: number | null } | null;
 };
 

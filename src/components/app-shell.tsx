@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { APP_NAME } from "@/lib/constants";
 import { updateDayOptimistically, type DayPayload, type QuickLogInput } from "@/lib/health/day";
+import type { TrainingType } from "@/lib/health/workouts";
 import type { UnitSystem } from "@/lib/health/units";
 import QuickLogSheet from "@/components/quick-log/quick-log-sheet";
 
@@ -20,6 +21,10 @@ const navigation = [
 type AppContextValue = {
   selectedDate: string | null;
   setSelectedDate: (date: string | null) => void;
+  trainingType: TrainingType;
+  setTrainingType: (type: TrainingType) => void;
+  trainingQuickOpen: boolean;
+  setTrainingQuickOpen: (open: boolean) => void;
   openQuickLog: (kind?: "weight" | "water" | "mood") => void;
   submitLog: (input: QuickLogInput) => Promise<void>;
 };
@@ -54,6 +59,8 @@ export default function AppShell({
     fetchJson,
   );
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [trainingType, setTrainingType] = useState<TrainingType>("strength");
+  const [trainingQuickOpen, setTrainingQuickOpen] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [initialLogKind, setInitialLogKind] = useState<
     "weight" | "water" | "mood" | null
@@ -70,6 +77,10 @@ export default function AppShell({
     () => ({
       selectedDate,
       setSelectedDate,
+      trainingType,
+      setTrainingType,
+      trainingQuickOpen,
+      setTrainingQuickOpen,
       openQuickLog: (kind) => {
         setInitialLogKind(kind ?? null);
         setQuickLogOpen(true);
@@ -120,7 +131,7 @@ export default function AppShell({
         }
       },
     }),
-    [mutate, selectedDate],
+    [mutate, selectedDate, trainingQuickOpen, trainingType],
   );
 
   const unitSystem: UnitSystem = profile?.unitSystem ?? "metric";
@@ -190,6 +201,13 @@ export default function AppShell({
           setQuickLogOpen(false);
           setInitialLogKind(null);
           router.push("/food");
+        }}
+        onTrainClick={(type) => {
+          setQuickLogOpen(false);
+          setInitialLogKind(null);
+          setTrainingType(type);
+          setTrainingQuickOpen(true);
+          router.push("/train");
         }}
         onClose={() => {
           setQuickLogOpen(false);

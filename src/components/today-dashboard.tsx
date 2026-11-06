@@ -510,9 +510,6 @@ export default function TodayDashboard() {
             <Link className="inline-flex min-h-11 items-center rounded-xl bg-brand px-4 font-medium text-white" href="/train">
               Log activity
             </Link>
-            <button className="min-h-11 rounded-xl border border-line px-4 text-sm" disabled type="button">
-              Repeat last workout
-            </button>
           </div>
         </article>
         <article className="rounded-3xl border border-line bg-card p-5 sm:p-7">

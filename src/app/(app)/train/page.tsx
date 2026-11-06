@@ -1,10 +1,5 @@
-import ComingSoon from "@/components/coming-soon";
+import TrainPage from "@/components/train-page";
 
-export default function TrainPage() {
-  return (
-    <ComingSoon
-      title="Train"
-      description="Workouts, walks, and training history will be collected here."
-    />
-  );
+export default function TrainingPage() {
+  return <TrainPage />;
 }
