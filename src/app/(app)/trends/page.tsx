@@ -1,10 +1,5 @@
-import ComingSoon from "@/components/coming-soon";
+import TrendsPage from "@/components/trends-page";
 
-export default function TrendsPage() {
-  return (
-    <ComingSoon
-      title="Trends"
-      description="Your long-term patterns will become clearer as you log."
-    />
-  );
+export default function TrendsRoute() {
+  return <TrendsPage />;
 }
