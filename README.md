@@ -41,9 +41,13 @@ The app is installable as a PWA. To deliver scheduled push reminders, generate
 VAPID keys with `npx web-push generate-vapid-keys` and configure
 `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
 and `VAPID_SUBJECT` in each deployment. Set a strong `CRON_SECRET`; Vercel calls
-the reminder endpoint on the configured schedule. Notifications use generic
-wording and never contain medication names or health values. Push delivery is
-best-effort and requires browser notification permission.
+the reminder endpoint daily at 09:00 UTC to fit the Hobby Cron limit. Daily
+reminders are sent at that run (the local time varies by timezone); weekday
+preferences are evaluated in each profile timezone. More frequent and
+per-reminder-time delivery requires a Vercel plan that supports more frequent
+Cron Jobs. Notifications use generic wording and never contain medication
+names or health values. Push delivery is best-effort and requires browser
+notification permission.
 
 Use **More → Privacy and support** to download a private JSON backup or
 restore a Vitals backup (merge; conflicting records are skipped), or

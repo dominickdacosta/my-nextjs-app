@@ -3,7 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import webpush from "web-push";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db/client";
-import { isReminderDueAt } from "@/lib/health/reminders";
+import { isReminderScheduledOn } from "@/lib/health/reminders";
 import {
   profiles,
   pushSubscriptions,
@@ -45,7 +45,6 @@ export async function GET(request: Request) {
       id: reminders.id,
       userId: reminders.userId,
       kind: reminders.kind,
-      time: reminders.time,
       daysOfWeek: reminders.daysOfWeek,
       timezone: profiles.timezone,
     })
@@ -53,8 +52,10 @@ export async function GET(request: Request) {
     .innerJoin(profiles, eq(profiles.userId, reminders.userId))
     .where(eq(reminders.enabled, true));
 
-  const currentMinute = new Date();
-  currentMinute.setUTCSeconds(0, 0);
+  const now = new Date();
+  const scheduledFor = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
   let delivered = 0;
   let failed = 0;
   let expired = 0;
@@ -66,57 +67,50 @@ export async function GET(request: Request) {
       .where(eq(pushSubscriptions.userId, reminder.userId));
 
     for (const subscription of subscriptions) {
-      for (let minutesAgo = 2; minutesAgo >= 0; minutesAgo -= 1) {
-        const scheduledFor = new Date(
-          currentMinute.getTime() - minutesAgo * 60_000,
+      if (!isReminderScheduledOn(reminder, now)) continue;
+
+      const [claim] = await db
+        .insert(reminderDeliveries)
+        .values({
+          reminderId: reminder.id,
+          subscriptionId: subscription.id,
+          scheduledFor,
+        })
+        .onConflictDoNothing()
+        .returning({ id: reminderDeliveries.id });
+      if (!claim) continue;
+
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+          },
+          JSON.stringify({
+            body: "It's time for your health check-in.",
+            url: "/more",
+          }),
+          { TTL: 86_400 },
         );
-        if (!isReminderDueAt(reminder, scheduledFor)) {
-          continue;
-        }
-
-        const [claim] = await db
-          .insert(reminderDeliveries)
-          .values({
-            reminderId: reminder.id,
-            subscriptionId: subscription.id,
-            scheduledFor,
-          })
-          .onConflictDoNothing()
-          .returning({ id: reminderDeliveries.id });
-        if (!claim) continue;
-
-        try {
-          await webpush.sendNotification(
-            {
-              endpoint: subscription.endpoint,
-              keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-            },
-            JSON.stringify({
-              body: "It's time for your health check-in.",
-              url: "/more",
-            }),
-            { TTL: 120 },
-          );
-          delivered += 1;
-        } catch (error) {
-          const statusCode =
-            typeof error === "object" &&
-            error !== null &&
-            "statusCode" in error &&
-            typeof error.statusCode === "number"
-              ? error.statusCode
-              : undefined;
-          if (statusCode === 404 || statusCode === 410) {
-            await db
-              .delete(pushSubscriptions)
-              .where(eq(pushSubscriptions.id, subscription.id));
-            expired += 1;
-          } else {
-            await db
-              .delete(reminderDeliveries)
-              .where(eq(reminderDeliveries.id, claim.id));
-            failed += 1;
-          }
+        delivered += 1;
+      } catch (error) {
+        const statusCode =
+          typeof error === "object" &&
+          error !== null &&
+          "statusCode" in error &&
+          typeof error.statusCode === "number"
+            ? error.statusCode
+            : undefined;
+        if (statusCode === 404 || statusCode === 410) {
+          await db
+            .delete(pushSubscriptions)
+            .where(eq(pushSubscriptions.id, subscription.id));
+          expired += 1;
+        } else {
+          await db
+            .delete(reminderDeliveries)
+            .where(eq(reminderDeliveries.id, claim.id));
+          failed += 1;
         }
       }
     }

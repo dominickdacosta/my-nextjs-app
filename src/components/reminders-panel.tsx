@@ -6,7 +6,6 @@ import useSWR from "swr";
 type Reminder = {
   id: string;
   kind: "medication" | "hydration" | "wellbeing";
-  time: string;
   daysOfWeek: number[];
   enabled: boolean;
 };
@@ -47,7 +46,6 @@ export default function RemindersPanel() {
     fetchJson,
   );
   const [kind, setKind] = useState<Reminder["kind"]>("wellbeing");
-  const [time, setTime] = useState("09:00");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -58,7 +56,6 @@ export default function RemindersPanel() {
     try {
       await sendJson("/api/reminders", "POST", {
         kind,
-        time,
         daysOfWeek: [],
       });
       await mutate();
@@ -154,11 +151,11 @@ export default function RemindersPanel() {
     <section className="mt-8 rounded-3xl border border-line bg-card p-5 sm:p-7">
       <h2 className="text-xl font-semibold">Reminders</h2>
       <p className="mt-1 text-sm text-muted">
-        Schedule a generic health check-in. Notifications never include health or medication details.
+        Set up a generic daily check-in. Hobby deployments send reminders during the daily run (around 09:00 UTC; local time varies). Notifications never include health or medication details.
       </p>
       {error ? <p className="mt-3 text-sm text-red-700" role="alert">{error.message}</p> : null}
       {message ? <p aria-live="polite" className="mt-3 text-sm text-brand" role="status">{message}</p> : null}
-      <form className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto]" onSubmit={(event) => void addReminder(event)}>
+      <form className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]" onSubmit={(event) => void addReminder(event)}>
         <label className="grid gap-2 text-sm font-medium">
           Reminder
           <select
@@ -170,16 +167,6 @@ export default function RemindersPanel() {
             <option value="hydration">Hydration check-in</option>
             <option value="medication">Medication check-in</option>
           </select>
-        </label>
-        <label className="grid gap-2 text-sm font-medium">
-          Time (profile timezone)
-          <input
-            className="min-h-12 rounded-xl border border-line bg-paper px-3"
-            onChange={(event) => setTime(event.target.value)}
-            required
-            type="time"
-            value={time}
-          />
         </label>
         <button
           className="min-h-12 self-end rounded-xl bg-brand px-5 font-semibold text-white disabled:opacity-60"
@@ -198,7 +185,7 @@ export default function RemindersPanel() {
                 : reminder.kind === "hydration"
                   ? "Hydration check-in"
                   : "Medication check-in"}{" "}
-              · {reminder.time} daily
+              · daily
             </span>
             <button
               className="min-h-10 rounded-lg px-3 text-sm text-muted underline"
