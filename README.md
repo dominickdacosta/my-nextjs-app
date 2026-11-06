@@ -17,6 +17,22 @@ Open [http://localhost:3000](http://localhost:3000). Create `.env.local` from
 sign-in provider (GitHub or Google OAuth; email sign-in is enabled when
 `AUTH_RESEND_KEY` is set). Never commit secrets.
 
+### Enable Google sign-in
+
+Google OAuth is already supported. In Google Cloud Console, create an OAuth
+client ID for a Web application and add the app origin and callback URL:
+
+- Local origin: `http://localhost:3000`
+- Local redirect URI: `http://localhost:3000/api/auth/callback/google`
+- Preview origin: `https://<your-preview-domain>`
+- Preview redirect URI: `https://<your-preview-domain>/api/auth/callback/google`
+
+In Vercel, add the Google client ID as `AUTH_GOOGLE_ID` and client secret as
+`AUTH_GOOGLE_SECRET` for the Preview environment, then redeploy the `develop`
+preview. Add them to Production separately if needed. The Google button appears
+on `/signin` once both variables are present. Do not send OAuth secrets in chat
+or commit them to the repository.
+
 For local database development, use a dedicated Neon development branch or
 PostgreSQL 16 in Docker (`docker compose up -d`). For Docker, set
 `DATABASE_URL=postgres://postgres:postgres@localhost:5432/vitals`. Never point
