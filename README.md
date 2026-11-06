@@ -58,6 +58,12 @@ existing, onboarded development account, set `DEV_SEED_USER_ID` to that account
 ID and run `npm run db:seed:dev`. The development seed refuses to run when
 `NODE_ENV=production`.
 
+## Tests
+
+Run `npm test` for validation, date, trends, reminder, and user-scoped query
+tests. `npm run e2e` runs the Playwright privacy smoke tests and requires the
+development environment (`DATABASE_URL` and an `AUTH_SECRET`) to be configured.
+
 ## Legacy data archive
 
 The previous app's database table is intentionally left untouched. If you need
