@@ -502,3 +502,41 @@ export const reminders = pgTable("reminders", {
   pushSubscriptionId: text("push_subscription_id"),
   ...timestamps(),
 });
+
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: ownedId(),
+    userId: userReference(),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    ...timestamps(),
+  },
+  (table) => ({
+    endpoint: uniqueIndex("push_subscriptions_endpoint_idx").on(table.endpoint),
+    owner: index("push_subscriptions_user_id_idx").on(table.userId),
+  }),
+);
+
+export const reminderDeliveries = pgTable(
+  "reminder_deliveries",
+  {
+    id: ownedId(),
+    reminderId: uuid("reminder_id")
+      .notNull()
+      .references(() => reminders.id, { onDelete: "cascade" }),
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => pushSubscriptions.id, { onDelete: "cascade" }),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    scheduled: uniqueIndex("reminder_deliveries_schedule_idx").on(
+      table.reminderId,
+      table.subscriptionId,
+      table.scheduledFor,
+    ),
+  }),
+);

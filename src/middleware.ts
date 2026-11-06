@@ -9,6 +9,7 @@ export default auth((request) => {
     pathname === "/manifest.webmanifest" ||
     pathname === "/favicon.ico" ||
     pathname === "/robots.txt" ||
+    pathname.startsWith("/api/cron/") ||
     pathname.startsWith("/icons/") ||
     pathname.startsWith("/_next/");
 

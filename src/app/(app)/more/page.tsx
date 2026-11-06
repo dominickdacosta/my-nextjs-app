@@ -1,4 +1,5 @@
 import { signOut } from "@/lib/auth";
+import AccountPrivacyPanel from "@/components/account-privacy-panel";
 import MoreHealthPage from "@/components/more-health-page";
 
 export default function MorePage() {
@@ -11,6 +12,7 @@ export default function MorePage() {
           <p className="mt-2 text-sm text-muted">
             Your health information is personal. It is not medical advice.
           </p>
+          <AccountPrivacyPanel />
           <form
             action={async () => {
               "use server";

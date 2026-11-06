@@ -75,6 +75,16 @@ export default function AppShell({
   const [toast, setToast] = useState("");
 
   useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker
+        .register("/sw.js")
+        .catch((error: unknown) => {
+          console.error("Service worker registration failed.", error);
+        });
+    }
+  }, []);
+
+  useEffect(() => {
     if (!toast) return;
     const timeout = window.setTimeout(() => setToast(""), 5000);
     return () => window.clearTimeout(timeout);

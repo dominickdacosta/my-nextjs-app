@@ -35,6 +35,24 @@ Food logging supports manual entries and recent-food search by default. Set
 `FDC_API_KEY` to enable USDA FoodData Central search; the key is used only by
 the server-side search route.
 
+## Reminders and privacy
+
+The app is installable as a PWA. To deliver scheduled push reminders, generate
+VAPID keys with `npx web-push generate-vapid-keys` and configure
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+and `VAPID_SUBJECT` in each deployment. Set a strong `CRON_SECRET`; Vercel calls
+the reminder endpoint on the configured schedule. Notifications use generic
+wording and never contain medication names or health values. Push delivery is
+best-effort and requires browser notification permission.
+
+Use **More → Privacy and support** to download a private JSON backup or
+restore a Vitals backup (merge; conflicting records are skipped), or
+permanently delete an account and its associated health data. To restore a
+backup from another account in the same database, delete the source account
+first. Push subscriptions are device-specific and must be enabled again after
+restoring. Store backups securely. `DATABASE_URL` and `AUTH_SECRET` should be
+protected and configured separately for Production and Preview.
+
 `npm run db:studio` opens Drizzle Studio. To load 30 days of sample data for an
 existing, onboarded development account, set `DEV_SEED_USER_ID` to that account
 ID and run `npm run db:seed:dev`. The development seed refuses to run when

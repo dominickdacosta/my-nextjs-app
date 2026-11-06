@@ -5,6 +5,7 @@ import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import useSWR, { useSWRConfig } from "swr";
 import { DateSwitcher } from "@/components/today-dashboard";
 import { useAppContext } from "@/components/app-shell";
+import RemindersPanel from "@/components/reminders-panel";
 import type { DayPayload } from "@/lib/health/day";
 import { todayFor } from "@/lib/health/dates";
 import {
@@ -571,6 +572,7 @@ export default function MoreHealthPage() {
           ) : null}
         </section>
       ) : null}
+      <RemindersPanel />
     </main>
   );
 }
