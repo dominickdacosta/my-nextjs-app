@@ -12,6 +12,12 @@ export type DayMeasurement = {
   loggedOn: string;
   loggedAt: string;
   weightKg: number | null;
+  bodyFatPct?: number | null;
+  waistCm?: number | null;
+  hipCm?: number | null;
+  chestCm?: number | null;
+  armCm?: number | null;
+  thighCm?: number | null;
 };
 
 export type DayCheckin = {
@@ -51,6 +57,18 @@ export type DayWorkout = {
   caloriesBurned: number | null;
 };
 
+export type DayVital = {
+  id: string;
+  loggedOn: string;
+  loggedAt: string;
+  kind: string;
+  valuePrimary: number;
+  valueSecondary: number | null;
+  unit: string;
+  context: string | null;
+  measuredAt: string | null;
+};
+
 export type DayPayload = {
   date: string;
   profile: {
@@ -76,9 +94,17 @@ export type DayPayload = {
   weight: DayMeasurement | null;
   checkin: DayCheckin | null;
   activity: { steps: number; activeMinutes: number; distanceM: number } | null;
+  vitals: DayVital[];
   food: DayFoodEntry[];
   workouts: DayWorkout[];
-  sleep: { durationMin: number | null } | null;
+  sleep: {
+    id: string;
+    loggedOn: string;
+    sleepDate: string;
+    durationMin: number | null;
+    quality: number | null;
+    awakenings: number | null;
+  } | null;
 };
 
 export type QuickLogInput =

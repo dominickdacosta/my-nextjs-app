@@ -10,6 +10,7 @@ import {
   goals,
   profiles,
   sleepEntries,
+  vitals,
   waterEntries,
   workouts,
 } from "@/lib/db/schema";
@@ -48,6 +49,7 @@ async function getDay(request: Request, userId: string) {
     food,
     workoutRows,
     sleepRows,
+    vitalRows,
     goalRows,
   ] = await Promise.all([
     db
@@ -99,6 +101,11 @@ async function getDay(request: Request, userId: string) {
       .orderBy(desc(sleepEntries.loggedAt)),
     db
       .select()
+      .from(vitals)
+      .where(and(eq(vitals.userId, userId), eq(vitals.loggedOn, date)))
+      .orderBy(desc(vitals.loggedAt)),
+    db
+      .select()
       .from(goals)
       .where(and(eq(goals.userId, userId), lte(goals.effectiveFrom, date)))
       .orderBy(desc(goals.effectiveFrom))
@@ -117,6 +124,7 @@ async function getDay(request: Request, userId: string) {
     weight: measurements.find((measurement) => measurement.weightKg !== null) ?? null,
     checkin: checkinRows[0] ?? null,
     activity: activityRows[0] ?? null,
+    vitals: vitalRows,
     food,
     workouts: workoutRows,
     sleep: sleepRows[0] ?? null,

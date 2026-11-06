@@ -25,6 +25,9 @@ type AppContextValue = {
   setTrainingType: (type: TrainingType) => void;
   trainingQuickOpen: boolean;
   setTrainingQuickOpen: (open: boolean) => void;
+  moreQuickKind: "sleep" | "vitals" | "meds" | "steps" | null;
+  moreQuickOpen: boolean;
+  setMoreQuickOpen: (open: boolean) => void;
   openQuickLog: (kind?: "weight" | "water" | "mood") => void;
   submitLog: (input: QuickLogInput) => Promise<void>;
 };
@@ -61,6 +64,10 @@ export default function AppShell({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [trainingType, setTrainingType] = useState<TrainingType>("strength");
   const [trainingQuickOpen, setTrainingQuickOpen] = useState(false);
+  const [moreQuickKind, setMoreQuickKind] = useState<
+    "sleep" | "vitals" | "meds" | "steps" | null
+  >(null);
+  const [moreQuickOpen, setMoreQuickOpen] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [initialLogKind, setInitialLogKind] = useState<
     "weight" | "water" | "mood" | null
@@ -81,6 +88,9 @@ export default function AppShell({
       setTrainingType,
       trainingQuickOpen,
       setTrainingQuickOpen,
+      moreQuickKind,
+      moreQuickOpen,
+      setMoreQuickOpen,
       openQuickLog: (kind) => {
         setInitialLogKind(kind ?? null);
         setQuickLogOpen(true);
@@ -131,7 +141,7 @@ export default function AppShell({
         }
       },
     }),
-    [mutate, selectedDate, trainingQuickOpen, trainingType],
+    [moreQuickKind, moreQuickOpen, mutate, selectedDate, trainingQuickOpen, trainingType],
   );
 
   const unitSystem: UnitSystem = profile?.unitSystem ?? "metric";
@@ -208,6 +218,13 @@ export default function AppShell({
           setTrainingType(type);
           setTrainingQuickOpen(true);
           router.push("/train");
+        }}
+        onMoreClick={(kind) => {
+          setQuickLogOpen(false);
+          setInitialLogKind(null);
+          setMoreQuickKind(kind);
+          setMoreQuickOpen(true);
+          router.push("/more");
         }}
         onClose={() => {
           setQuickLogOpen(false);
