@@ -29,3 +29,22 @@ export function invalidInput(issues: unknown) {
     { status: 400 },
   );
 }
+
+export async function readJson(request: Request): Promise<
+  | { body: unknown; response?: never }
+  | { body?: never; response: NextResponse }
+> {
+  try {
+    return { body: await request.json() };
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return {
+        response: NextResponse.json(
+          { error: "Request body must be valid JSON." },
+          { status: 400 },
+        ),
+      };
+    }
+    throw error;
+  }
+}
