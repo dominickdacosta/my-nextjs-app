@@ -1,7 +1,9 @@
-# Family Chore Board
+# Vitals
 
-A family-friendly task board built with Next.js. Tasks are stored in a local
-JSON file during development and in Neon Postgres when `DATABASE_URL` is set.
+Vitals is a mobile-first personal health tracker for recording nutrition,
+hydration, movement, sleep, and wellbeing. Health data is sensitive: the
+application is being built with authentication and per-user data isolation as
+foundational requirements.
 
 ## Local development
 
@@ -10,50 +12,30 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). Database-backed features
+will require `DATABASE_URL`; configure it in `.env.local` and do not commit
+secrets.
 
-Local tasks are stored in `data/tasks.json`. This file is intentionally ignored
-by Git so household data is not committed.
+For local database development, use a dedicated Neon development branch or
+PostgreSQL 16 in Docker. Never point development scripts at production data
+unless that is intentional.
 
-## Persistent storage and data migration
+## Legacy data archive
 
-The app uses Neon Postgres for durable storage on Vercel. The app creates its
-`household_tasks` table automatically when it first accesses the database.
+The previous app's database table is intentionally left untouched. If you need
+to preserve its contents before managing that table manually, set
+`DATABASE_URL` and run the explicit archive utility in `scripts/` from the
+repository root. It writes a JSON archive to the ignored `data/` directory,
+which may contain personal data, and never runs as part of app startup.
 
-1. Create a Neon database from the Vercel Marketplace and connect it to your
-   Vercel project. Make sure the project has a `DATABASE_URL` environment
-   variable for Production, and for Preview if you use preview deployments.
-2. For local migration, create `.env.local` in the repository root and set
-   `DATABASE_URL` to the Neon connection string. Keep this secret out of Git.
-3. Run `npm run migrate:tasks` once from the repository root. The script copies
-   task IDs, recurrence details, and completion history from
-   `data/tasks.json`. It leaves existing database rows unchanged and does not
-   delete the local file.
-4. Verify the migrated tasks in the app before removing or archiving any local
-   copies.
+## Deployment
 
-If `DATABASE_URL` is not configured in production, task requests fail rather
-than silently using temporary serverless storage.
+Deploy with the repository's existing Vercel integration. Keep `main` as the
+Production branch and use `develop` for Preview deployments. Configure the
+required environment variables for each environment before enabling
+database-backed features.
 
-## Deploy to Vercel
+## Health information
 
-1. Push this repository to GitHub and import it into Vercel.
-2. Connect the Neon Marketplace integration and confirm `DATABASE_URL` is
-   available to the deployment environment.
-3. Deploy the `main` branch. Vercel's Git integration automatically deploys
-   later pushes to the connected production branch. Pushes to `develop` and
-   other non-production branches create Preview deployments when the Git
-   integration is enabled.
-4. Add `DATABASE_URL` to Vercel's Preview environment so preview deployments
-   can use Neon. Keep `main` as the Production Branch if it should remain the
-   live production site; `develop` deployments will then have their own
-   preview URLs.
-
-No separate GitHub Actions workflow is required for Vercel deployments.
-
-## Access and data safety
-
-The task API does not require sign-in. Anyone who can access the deployed app
-can read, add, update, or delete its tasks. Do not put sensitive information
-in tasks. Add authentication and authorization before using the app for
-non-public household data.
+Vitals is for personal tracking and is not medical advice or a diagnostic
+service. Consult a qualified clinician for medical questions or concerns.
