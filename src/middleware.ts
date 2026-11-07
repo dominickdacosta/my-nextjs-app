@@ -6,6 +6,9 @@ export default auth((request) => {
   const isPublic =
     pathname === "/signin" ||
     pathname.startsWith("/api/auth/") ||
+    pathname === "/mobile-auth/start" ||
+    pathname === "/api/mobile-auth/complete" ||
+    pathname === "/api/mobile-auth/exchange" ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/favicon.ico" ||
     pathname === "/robots.txt" ||
