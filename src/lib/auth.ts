@@ -16,6 +16,9 @@ import {
 
 const providers: NextAuthConfig["providers"] = [];
 
+const authStateCookie = "vitals.authjs.state.v1";
+const authNonceCookie = "vitals.authjs.nonce.v1";
+
 if (process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET) {
   providers.push(
     GitHub({
@@ -53,6 +56,49 @@ if (
 }
 
 export const authConfig: NextAuthConfig = {
+  cookies: {
+    state: {
+      name: authStateCookie,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 15 * 60,
+      },
+    },
+    nonce: {
+      name: authNonceCookie,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 15 * 60,
+      },
+    },
+  },
+  logger: {
+    error(error) {
+      const errorType =
+        "type" in error && typeof error.type === "string"
+          ? error.type
+          : error.name;
+      const diagnosticMessage =
+        /^(state|nonce|pkceCodeVerifier) (cookie was missing|value could not be parsed)$/.test(
+          error.message,
+        )
+          ? error.message
+          : "Authentication request failed.";
+      const causeName =
+        error.cause instanceof Error ? error.cause.name : undefined;
+      console.error("[auth][error]", {
+        type: errorType,
+        message: diagnosticMessage,
+        causeName,
+      });
+    },
+  },
   ...(databaseUrl
     ? {
         adapter: DrizzleAdapter(getDb(), {
