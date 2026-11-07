@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import useSWR, { useSWRConfig } from "swr";
 import { DateSwitcher } from "@/components/today-dashboard";
 import { useAppContext } from "@/components/app-shell";
@@ -24,38 +23,19 @@ import {
 } from "@/lib/health/units";
 import { estimateCaloriesFromSteps } from "@/lib/health/energy";
 
-type Panel = "body" | "sleep" | "vitals" | "activity" | "medications";
-type QuickKind = "sleep" | "vitals" | "meds" | null;
+type Panel = "body" | "sleep" | "vitals" | "activity";
+type QuickKind = "sleep" | "vitals" | null;
 type VitalKind =
   | "blood_pressure"
   | "heart_rate"
   | "blood_glucose"
   | "oxygen_saturation"
   | "temperature";
-type Medication = {
-  id: string;
-  name: string;
-  dose: string | null;
-  schedule: string;
-  times: string[];
-  daysOfWeek: number[];
-  active: boolean;
-};
-type MedicationLog = {
-  id: string;
-  medicationId: string;
-  medicationName: string;
-  dose: string | null;
-  scheduledFor: string;
-  status: "taken" | "skipped";
-};
-
 const panels: Array<{ id: Panel; label: string; icon: string }> = [
   { id: "body", label: "Body", icon: "⚖️" },
   { id: "sleep", label: "Sleep", icon: "😴" },
   { id: "vitals", label: "Vitals", icon: "❤️" },
   { id: "activity", label: "Steps", icon: "👟" },
-  { id: "medications", label: "Medications", icon: "💊" },
 ];
 
 const vitalUnits: Record<VitalKind, string> = {
@@ -107,16 +87,6 @@ export default function MoreHealthPage() {
     dayKey(selectedDate),
     fetchJson,
   );
-  const { data: medications, mutate: mutateMedications } = useSWR<Medication[]>(
-    "/api/medications",
-    fetchJson,
-  );
-  const medicationLogKey = day
-    ? `/api/medication-logs?date=${encodeURIComponent(day.date)}`
-    : null;
-  const { data: medicationLogs, mutate: mutateMedicationLogs } = useSWR<
-    MedicationLog[]
-  >(medicationLogKey, fetchJson);
   const [activePanel, setActivePanel] = useState<Panel | null>(null);
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
@@ -144,11 +114,6 @@ export default function MoreHealthPage() {
   const [vitalSecondary, setVitalSecondary] = useState("");
   const [vitalUnit, setVitalUnit] = useState("mmHg");
   const [vitalContext, setVitalContext] = useState("");
-
-  const [medicationName, setMedicationName] = useState("");
-  const [medicationDose, setMedicationDose] = useState("");
-  const [medicationSchedule, setMedicationSchedule] = useState("Daily");
-  const [medicationTime, setMedicationTime] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -183,7 +148,6 @@ export default function MoreHealthPage() {
     const panel: Record<Exclude<QuickKind, null>, Panel> = {
       sleep: "sleep",
       vitals: "vitals",
-      meds: "medications",
     };
     if (moreQuickKind) setActivePanel(panel[moreQuickKind]);
     setMoreQuickOpen(false);
@@ -218,10 +182,6 @@ export default function MoreHealthPage() {
       setNotice("Saved.");
       try {
         await mutateCache(dayKey(selectedDate));
-        if (url.startsWith("/api/medication")) {
-          await mutateMedicationLogs();
-          await mutateMedications();
-        }
       } catch {
         setActionError("Your log was saved, but the summary could not refresh.");
       }
@@ -336,102 +296,13 @@ export default function MoreHealthPage() {
     });
   }
 
-  async function addMedication(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setActionError("");
-    setNotice("");
-    try {
-      const result = await postJson<Medication>("/api/medications", {
-        name: medicationName,
-        dose: medicationDose.trim() || null,
-        schedule: medicationSchedule,
-        times: medicationTime ? [medicationTime] : [],
-        daysOfWeek: [],
-        active: true,
-      });
-      setMedicationName("");
-      setMedicationDose("");
-      setMedicationTime("");
-      setNotice(`${result.name} added.`);
-      try {
-        await mutateMedications();
-      } catch {
-        setActionError("Medication was added, but the list could not refresh.");
-      }
-    } catch (saveError) {
-      setActionError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Could not save this medication.",
-      );
-    }
-  }
-
-  async function logMedication(medication: Medication, status: "taken" | "skipped") {
-    const timezone = dayData.profile.timezone;
-    const scheduledTime =
-      medication.times[0] ??
-      (dayData.date === todayFor(timezone)
-        ? formatInTimeZone(new Date(), timezone, "HH:mm")
-        : "12:00");
-    const scheduledFor = fromZonedTime(
-      `${dayData.date}T${scheduledTime}:00`,
-      timezone,
-    );
-    scheduledFor.setSeconds(0, 0);
-    setActionError("");
-    setNotice("");
-    try {
-      await postJson("/api/medication-logs", {
-        medicationId: medication.id,
-        loggedOn: dayData.date,
-        scheduledFor: scheduledFor.toISOString(),
-        status,
-      });
-      setNotice(`${medication.name} marked ${status}.`);
-      try {
-        await mutateMedicationLogs();
-      } catch {
-        setActionError("Medication was logged, but the list could not refresh.");
-      }
-    } catch (saveError) {
-      setActionError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Could not log this medication.",
-      );
-    }
-  }
-
-  async function toggleMedication(medication: Medication) {
-    setActionError("");
-    try {
-      const response = await fetch(`/api/medications/${encodeURIComponent(medication.id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ active: !medication.active }),
-      });
-      if (!response.ok) {
-        const result = (await response.json()) as { error?: string };
-        throw new Error(result.error ?? "Could not update this medication.");
-      }
-      await mutateMedications();
-    } catch (updateError) {
-      setActionError(
-        updateError instanceof Error
-          ? updateError.message
-          : "Could not update this medication.",
-      );
-    }
-  }
-
   return (
     <main className="mx-auto max-w-6xl px-4 pb-36 pt-7 sm:px-8 sm:pt-10 lg:pb-12">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-sm font-medium text-brand">More health logs</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">More</h1>
-          <p className="mt-2 text-sm text-muted">Body measurements, sleep, vitals, activity, and medication.</p>
+          <p className="mt-2 text-sm text-muted">Body measurements, sleep, vitals, and steps.</p>
         </div>
         <DateSwitcher
           date={day.date}
@@ -446,7 +317,7 @@ export default function MoreHealthPage() {
       {actionError ? <p className="mb-4 text-sm text-red-700" role="alert">{actionError}</p> : null}
       {notice ? <p aria-live="polite" className="mb-4 text-sm text-brand" role="status">{notice}</p> : null}
 
-      <section aria-label="Health log types" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <section aria-label="Health log types" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {panels.map((panel) => (
           <button
             aria-pressed={activePanel === panel.id}
@@ -658,57 +529,6 @@ export default function MoreHealthPage() {
         </section>
       ) : null}
 
-      {activePanel === "medications" ? (
-        <section className="mt-5 rounded-3xl border border-line bg-card p-5 sm:p-7">
-          <h2 className="text-xl font-semibold">Medication reminders</h2>
-          <p className="mt-1 text-sm text-muted">Track your own schedule and mark doses. Vitals does not provide dosing advice.</p>
-          <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={(event) => void addMedication(event)}>
-            <HealthInput label="Medication name" onChange={setMedicationName} required value={medicationName} />
-            <HealthInput label="Dose (optional)" onChange={setMedicationDose} value={medicationDose} />
-            <HealthInput label="Schedule" onChange={setMedicationSchedule} required value={medicationSchedule} />
-            <HealthInput label="Reminder time (optional)" onChange={setMedicationTime} type="time" value={medicationTime} />
-            <button className="min-h-12 rounded-xl bg-brand px-5 font-semibold text-white sm:col-span-2 sm:justify-self-start" type="submit">Add medication</button>
-          </form>
-          <h3 className="mt-7 font-semibold">Your medications</h3>
-          {medications?.length ? (
-            <ul className="mt-2 divide-y divide-line">
-              {medications.map((medication) => (
-                <li className="flex flex-wrap items-center justify-between gap-3 py-4" key={medication.id}>
-                  <div>
-                    <p className="font-medium">{medication.name}{medication.dose ? ` · ${medication.dose}` : ""}</p>
-                    <p className="mt-1 text-sm text-muted">{medication.schedule}{medication.times.length ? ` · ${medication.times.join(", ")}` : ""}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    {medication.active ? (
-                      <>
-                        <button className="min-h-10 rounded-lg bg-brand px-3 text-sm font-medium text-white" onClick={() => void logMedication(medication, "taken")} type="button">Taken</button>
-                        <button className="min-h-10 rounded-lg border border-line px-3 text-sm" onClick={() => void logMedication(medication, "skipped")} type="button">Skip</button>
-                      </>
-                    ) : null}
-                    <button className="min-h-10 rounded-lg px-2 text-sm text-muted underline" onClick={() => void toggleMedication(medication)} type="button">
-                      {medication.active ? "Pause" : "Resume"}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-muted">No medications added yet.</p>
-          )}
-          {medicationLogs?.length ? (
-            <>
-              <h3 className="mt-6 font-semibold">Dose log</h3>
-              <ul className="mt-2 divide-y divide-line">
-                {medicationLogs.map((entry) => (
-                  <li className="py-3 text-sm" key={entry.id}>
-                    {entry.medicationName}{entry.dose ? ` · ${entry.dose}` : ""}: {entry.status}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-        </section>
-      ) : null}
       <RemindersPanel />
     </main>
   );

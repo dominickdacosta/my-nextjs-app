@@ -1,6 +1,6 @@
 export type FoodSearchResult = {
   id: string;
-  source: "history" | "fdc";
+  source: "history" | "fdc" | "open-food-facts";
   nutritionSource: "estimated" | "verified" | "manual";
   name: string;
   brand: string | null;

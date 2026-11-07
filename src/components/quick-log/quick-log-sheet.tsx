@@ -17,17 +17,14 @@ const logOptions = [
   { kind: "cardio", label: "Walk / Run", icon: "🚶" },
   { kind: "weight", label: "Weight", icon: "⚖️" },
   { kind: "sleep", label: "Sleep", icon: "😴" },
-  { kind: "energy", label: "Energy", icon: "⚡" },
   { kind: "vitals", label: "Vitals", icon: "❤️" },
-  { kind: "meds", label: "Meds", icon: "💊" },
 ] as const;
 
 type LogKind = (typeof logOptions)[number]["kind"];
 type SaveLog = (input: QuickLogInput) => Promise<void>;
 type QuickLogDraft =
   | { kind: "water"; amountMl: number }
-  | { kind: "weight"; weightKg: number }
-  | { kind: "checkin"; energy: number };
+  | { kind: "weight"; weightKg: number };
 
 async function getLogDate(date: string | null): Promise<string> {
   if (date) return date;
@@ -51,7 +48,7 @@ export default function QuickLogSheet({
   date: string | null;
   initialKind: "weight" | "water" | null;
   onFoodClick: () => void;
-  onMoreClick: (kind: "sleep" | "vitals" | "meds") => void;
+  onMoreClick: (kind: "sleep" | "vitals") => void;
   onTrainClick: (type: TrainingType) => void;
   onClose: () => void;
   onSubmit: SaveLog;
@@ -63,7 +60,6 @@ export default function QuickLogSheet({
   const [waterAmountMl, setWaterAmountMl] = useState(250);
   const [waterInput, setWaterInput] = useState("250");
   const [weightInput, setWeightInput] = useState("");
-  const [energy, setEnergy] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -112,11 +108,7 @@ export default function QuickLogSheet({
       onTrainClick(nextKind === "workout" ? "strength" : "cardio");
       return;
     }
-    if (
-      nextKind === "sleep" ||
-      nextKind === "vitals" ||
-      nextKind === "meds"
-    ) {
+    if (nextKind === "sleep" || nextKind === "vitals") {
       onMoreClick(nextKind);
       return;
     }
@@ -129,7 +121,6 @@ export default function QuickLogSheet({
       );
     }
     if (nextKind === "weight") setWeightInput("");
-    if (nextKind === "energy") setEnergy(null);
   }
 
   return (
@@ -279,38 +270,7 @@ export default function QuickLogSheet({
           </form>
         ) : null}
 
-        {kind === "energy" ? (
-          <form
-            className="mt-7 grid gap-6"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (energy === null) {
-                setError("Choose an energy level.");
-                return;
-              }
-              void save({
-                kind: "checkin",
-                energy,
-              });
-            }}
-          >
-            <RatingPicker
-              label="Energy"
-              onChange={setEnergy}
-              selected={energy}
-              values={["🪫", "😴", "😶", "⚡", "✨"]}
-            />
-            <button
-              className="min-h-12 rounded-xl bg-brand px-5 font-semibold text-white"
-              disabled={saving || energy === null}
-              type="submit"
-            >
-              {saving ? "Saving..." : "Save energy"}
-            </button>
-          </form>
-        ) : null}
-
-        {kind && !["water", "weight", "energy"].includes(kind) ? (
+        {kind && !["water", "weight"].includes(kind) ? (
           <div className="mt-7 rounded-2xl border border-line bg-card p-5 text-sm text-muted">
             This quick log is coming soon. Your other daily logs are ready to use.
           </div>
@@ -332,42 +292,5 @@ export default function QuickLogSheet({
         ) : null}
       </div>
     </dialog>
-  );
-}
-
-function RatingPicker({
-  label,
-  values,
-  selected,
-  onChange,
-}: {
-  label: string;
-  values: string[];
-  selected: number | null;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <fieldset>
-      <legend className="mb-2 text-sm font-medium">{label}</legend>
-      <div className="grid grid-cols-5 gap-2">
-        {values.map((icon, index) => {
-          const value = index + 1;
-          return (
-            <button
-              aria-label={`${label} ${value} of 5`}
-              aria-pressed={selected === value}
-              className={`min-h-12 rounded-xl border text-2xl ${
-                selected === value ? "border-brand bg-brand/10" : "border-line bg-card"
-              }`}
-              key={value}
-              onClick={() => onChange(value)}
-              type="button"
-            >
-              {icon}
-            </button>
-          );
-        })}
-      </div>
-    </fieldset>
   );
 }

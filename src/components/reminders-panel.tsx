@@ -5,7 +5,7 @@ import useSWR from "swr";
 
 type Reminder = {
   id: string;
-  kind: "medication" | "hydration" | "wellbeing";
+  kind: "hydration" | "wellbeing";
   daysOfWeek: number[];
   enabled: boolean;
 };
@@ -151,7 +151,7 @@ export default function RemindersPanel() {
     <section className="mt-8 rounded-3xl border border-line bg-card p-5 sm:p-7">
       <h2 className="text-xl font-semibold">Reminders</h2>
       <p className="mt-1 text-sm text-muted">
-        Set up a generic daily check-in. Hobby deployments send reminders during the daily run (around 09:00 UTC; local time varies). Notifications never include health or medication details.
+        Set up a daily hydration or wellbeing reminder. Hobby deployments send reminders during the daily run (around 09:00 UTC; local time varies). Notifications use generic wording.
       </p>
       {error ? <p className="mt-3 text-sm text-red-700" role="alert">{error.message}</p> : null}
       {message ? <p aria-live="polite" className="mt-3 text-sm text-brand" role="status">{message}</p> : null}
@@ -165,7 +165,6 @@ export default function RemindersPanel() {
           >
             <option value="wellbeing">Wellbeing check-in</option>
             <option value="hydration">Hydration check-in</option>
-            <option value="medication">Medication check-in</option>
           </select>
         </label>
         <button
@@ -182,9 +181,7 @@ export default function RemindersPanel() {
             <span className="text-sm">
               {reminder.kind === "wellbeing"
                 ? "Wellbeing check-in"
-                : reminder.kind === "hydration"
-                  ? "Hydration check-in"
-                  : "Medication check-in"}{" "}
+                : "Hydration check-in"}{" "}
               · daily
             </span>
             <button
@@ -217,7 +214,7 @@ export default function RemindersPanel() {
         </button>
       </div>
       <p className="mt-3 text-xs leading-5 text-muted">
-        Reminders require browser permission and configured push keys. They are best-effort, not a substitute for medication instructions.
+        Reminders require browser permission and configured push keys. Delivery is best-effort.
       </p>
     </section>
   );

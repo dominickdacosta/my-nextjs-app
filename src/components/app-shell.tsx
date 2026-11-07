@@ -31,7 +31,7 @@ type AppContextValue = {
   trainingQuickOpen: boolean;
   setTrainingQuickOpen: (open: boolean) => void;
   userId: string | null;
-  moreQuickKind: "sleep" | "vitals" | "meds" | null;
+  moreQuickKind: "sleep" | "vitals" | null;
   moreQuickOpen: boolean;
   setMoreQuickOpen: (open: boolean) => void;
   openQuickLog: (kind?: "weight" | "water") => void;
@@ -71,9 +71,9 @@ export default function AppShell({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [trainingType, setTrainingType] = useState<TrainingType>("strength");
   const [trainingQuickOpen, setTrainingQuickOpen] = useState(false);
-  const [moreQuickKind, setMoreQuickKind] = useState<
-    "sleep" | "vitals" | "meds" | null
-  >(null);
+  const [moreQuickKind, setMoreQuickKind] = useState<"sleep" | "vitals" | null>(
+    null,
+  );
   const [moreQuickOpen, setMoreQuickOpen] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [initialLogKind, setInitialLogKind] = useState<
@@ -178,9 +178,7 @@ export default function AppShell({
               const route =
                 input.kind === "water"
                   ? "/api/water-entries"
-                  : input.kind === "weight"
-                    ? "/api/body-measurements"
-                    : "/api/checkins";
+                  : "/api/body-measurements";
               const response = await fetch(route, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

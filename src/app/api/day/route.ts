@@ -5,7 +5,6 @@ import { getDb } from "@/lib/db/client";
 import {
   bodyMeasurements,
   dailyActivity,
-  dailyCheckins,
   foodEntries,
   goals,
   profiles,
@@ -44,7 +43,6 @@ async function getDay(request: Request, userId: string) {
   const [
     water,
     measurements,
-    checkinRows,
     activityRows,
     food,
     workoutRows,
@@ -67,20 +65,6 @@ async function getDay(request: Request, userId: string) {
         ),
       )
       .orderBy(desc(bodyMeasurements.loggedAt)),
-    db
-      .select({
-        id: dailyCheckins.id,
-        loggedOn: dailyCheckins.loggedOn,
-        energy: dailyCheckins.energy,
-      })
-      .from(dailyCheckins)
-      .where(
-        and(
-          eq(dailyCheckins.userId, userId),
-          eq(dailyCheckins.loggedOn, date),
-        ),
-      )
-      .limit(1),
     db
       .select()
       .from(dailyActivity)
@@ -126,7 +110,6 @@ async function getDay(request: Request, userId: string) {
     },
     measurements,
     weight: measurements.find((measurement) => measurement.weightKg !== null) ?? null,
-    checkin: checkinRows[0] ?? null,
     activity: activityRows[0] ?? null,
     vitals: vitalRows,
     food,

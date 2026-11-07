@@ -3,7 +3,7 @@ import { z } from "zod";
 const timeSchema = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/);
 
 export const reminderSchema = z.object({
-  kind: z.enum(["medication", "hydration", "wellbeing"]),
+  kind: z.enum(["hydration", "wellbeing"]),
   time: timeSchema.default("09:00"),
   daysOfWeek: z.array(z.number().int().min(0).max(6)).max(7).default([]),
 });
