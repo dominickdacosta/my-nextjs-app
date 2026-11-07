@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { APP_NAME } from "@/lib/constants";
+import MobileAuthHandoff from "@/components/mobile-auth-handoff";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,7 +31,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <MobileAuthHandoff />
+        {children}
+      </body>
     </html>
   );
 }
