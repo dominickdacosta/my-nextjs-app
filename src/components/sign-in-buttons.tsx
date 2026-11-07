@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Browser } from "@capacitor/browser";
+import { Capacitor } from "@capacitor/core";
 import { signIn } from "next-auth/react";
 
 type SignInProvider = {
@@ -16,10 +18,43 @@ export default function SignInButtons({
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const mobileAuthError = window.sessionStorage.getItem("vitals.auth.error");
+    if (mobileAuthError) {
+      window.sessionStorage.removeItem("vitals.auth.error");
+      setError(mobileAuthError);
+      setPendingProvider(null);
+    }
+    const resetPending = () => setPendingProvider(null);
+    window.addEventListener("vitals-auth-browser-finished", resetPending);
+    return () =>
+      window.removeEventListener("vitals-auth-browser-finished", resetPending);
+  }, []);
+
+  async function startAndroidGoogleSignIn() {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const handoff = btoa(String.fromCharCode(...bytes))
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replace(/=+$/, "");
+    window.sessionStorage.setItem("vitals.auth.handoff", handoff);
+    const authUrl = new URL("/mobile-auth/start", window.location.origin);
+    authUrl.searchParams.set("handoff", handoff);
+    await Browser.open({ url: authUrl.toString() });
+  }
+
   async function continueWith(provider: SignInProvider) {
     setPendingProvider(provider.id);
     setError("");
     try {
+      if (
+        provider.id === "google" &&
+        Capacitor.isNativePlatform() &&
+        Capacitor.getPlatform() === "android"
+      ) {
+        await startAndroidGoogleSignIn();
+        return;
+      }
       await signIn(provider.id, { redirectTo: "/" });
     } catch {
       setPendingProvider(null);

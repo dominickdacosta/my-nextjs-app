@@ -61,7 +61,7 @@ export const authConfig: NextAuthConfig = {
       name: authStateCookie,
       options: {
         httpOnly: true,
-        sameSite: "none",
+        sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production",
         maxAge: 15 * 60,
@@ -71,7 +71,7 @@ export const authConfig: NextAuthConfig = {
       name: authNonceCookie,
       options: {
         httpOnly: true,
-        sameSite: "none",
+        sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production",
         maxAge: 15 * 60,

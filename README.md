@@ -33,13 +33,12 @@ preview. Add them to Production separately if needed. The Google button appears
 on `/signin` once both variables are present. Do not send OAuth secrets in chat
 or commit them to the repository.
 
-Google sign-in uses OAuth state and OIDC nonce checks with versioned,
-`SameSite=None; Secure` cookies for Android WebView cross-site redirects. PKCE
-is omitted because the Android WebView does not reliably preserve Auth.js's
-verifier cookie across the Google sign-in redirect. The Android app enables
-WebView third-party cookie handling for the OAuth redirect flow. Authentication
-logs report OAuth cookie presence and safe error metadata only; they never log
-cookie values, tokens, credentials, or health data.
+Google sign-in uses OAuth state and OIDC nonce checks. In the Android app,
+Google OAuth runs in a Chrome Custom Tab so its cookies stay in one browser
+context; a short-lived, single-use signed handoff returns the authenticated
+session to Vitals. Authentication logs report OAuth cookie presence and safe
+error metadata only; they never log cookie values, tokens, credentials, or
+health data.
 
 For local database development, use a dedicated Neon development branch or
 PostgreSQL 16 in Docker (`docker compose up -d`). For Docker, set
