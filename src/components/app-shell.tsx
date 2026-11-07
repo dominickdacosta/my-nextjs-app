@@ -5,6 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { APP_NAME } from "@/lib/constants";
+import {
+  healthConnectAvailable,
+  isHealthConnectConnected,
+  syncHealthConnectSteps,
+} from "@/lib/health/health-connect";
 import { updateDayOptimistically, type DayPayload, type QuickLogInput } from "@/lib/health/day";
 import type { TrainingType } from "@/lib/health/workouts";
 import type { UnitSystem } from "@/lib/health/units";
@@ -25,6 +30,7 @@ type AppContextValue = {
   setTrainingType: (type: TrainingType) => void;
   trainingQuickOpen: boolean;
   setTrainingQuickOpen: (open: boolean) => void;
+  userId: string | null;
   moreQuickKind: "sleep" | "vitals" | "meds" | "steps" | null;
   moreQuickOpen: boolean;
   setMoreQuickOpen: (open: boolean) => void;
@@ -57,10 +63,11 @@ export default function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const { mutate } = useSWRConfig();
-  const { data: profile } = useSWR<{ unitSystem: UnitSystem }>(
-    "/api/profile",
-    fetchJson,
-  );
+  const { data: profile } = useSWR<{
+    userId: string;
+    unitSystem: UnitSystem;
+    timezone: string;
+  }>("/api/profile", fetchJson);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [trainingType, setTrainingType] = useState<TrainingType>("strength");
   const [trainingQuickOpen, setTrainingQuickOpen] = useState(false);
@@ -85,6 +92,60 @@ export default function AppShell({
   }, []);
 
   useEffect(() => {
+    if (!profile?.timezone || !profile.userId) return;
+    const timezone = profile.timezone;
+    const userId = profile.userId;
+    let disposed = false;
+    let removeAppListener: (() => void) | undefined;
+
+    async function syncSteps() {
+      if (!isHealthConnectConnected(userId)) return;
+      try {
+        await syncHealthConnectSteps(timezone, userId);
+        await mutate(
+          (key) =>
+            typeof key === "string" &&
+            (key === "/api/day" || key.startsWith("/api/day?")),
+        );
+      } catch {
+        if (!disposed) {
+          setToast("Steps could not sync. Open More to refresh or reconnect Health Connect.");
+        }
+      }
+    }
+
+    async function listenForResume() {
+      if (!(await healthConnectAvailable()) || disposed) return;
+      const { App } = await import("@capacitor/app");
+      const listener = await App.addListener(
+        "appStateChange",
+        ({ isActive }) => {
+          if (isActive) void syncSteps();
+        },
+      );
+      if (disposed) {
+        await listener.remove();
+      } else {
+        removeAppListener = () => {
+          void listener.remove();
+        };
+        await syncSteps();
+      }
+    }
+
+    void listenForResume().catch(() => {
+      if (!disposed) {
+        setToast("Steps could not sync. Open More to refresh or reconnect Health Connect.");
+      }
+    });
+
+    return () => {
+      disposed = true;
+      removeAppListener?.();
+    };
+  }, [mutate, profile?.timezone, profile?.userId]);
+
+  useEffect(() => {
     if (!toast) return;
     const timeout = window.setTimeout(() => setToast(""), 5000);
     return () => window.clearTimeout(timeout);
@@ -98,6 +159,7 @@ export default function AppShell({
       setTrainingType,
       trainingQuickOpen,
       setTrainingQuickOpen,
+      userId: profile?.userId ?? null,
       moreQuickKind,
       moreQuickOpen,
       setMoreQuickOpen,
@@ -151,7 +213,15 @@ export default function AppShell({
         }
       },
     }),
-    [moreQuickKind, moreQuickOpen, mutate, selectedDate, trainingQuickOpen, trainingType],
+    [
+      moreQuickKind,
+      moreQuickOpen,
+      mutate,
+      profile?.userId,
+      selectedDate,
+      trainingQuickOpen,
+      trainingType,
+    ],
   );
 
   const unitSystem: UnitSystem = profile?.unitSystem ?? "metric";

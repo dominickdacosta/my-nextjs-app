@@ -9,6 +9,14 @@ import RemindersPanel from "@/components/reminders-panel";
 import type { DayPayload } from "@/lib/health/day";
 import { todayFor } from "@/lib/health/dates";
 import {
+  connectHealthConnectSteps,
+  getHealthConnectLastSync,
+  healthConnectAvailable,
+  healthConnectStateEvent,
+  isHealthConnectConnected,
+  syncHealthConnectSteps,
+} from "@/lib/health/health-connect";
+import {
   cmToInches,
   formatWeight,
   inchesToCm,
@@ -92,6 +100,7 @@ export default function MoreHealthPage() {
     moreQuickKind,
     moreQuickOpen,
     setMoreQuickOpen,
+    userId,
   } = useAppContext();
   const { mutate: mutateCache } = useSWRConfig();
   const { data: day, error: dayError } = useSWR<DayPayload>(
@@ -111,6 +120,14 @@ export default function MoreHealthPage() {
   const [activePanel, setActivePanel] = useState<Panel | null>(null);
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
+  const [healthConnectAvailableOnDevice, setHealthConnectAvailableOnDevice] =
+    useState(false);
+  const [healthConnectConnected, setHealthConnectConnected] = useState(false);
+  const [healthConnectBusy, setHealthConnectBusy] = useState(false);
+  const [healthConnectLastSync, setHealthConnectLastSync] = useState<string | null>(
+    null,
+  );
+  const [healthConnectError, setHealthConnectError] = useState("");
 
   const [weight, setWeight] = useState("");
   const [bodyFat, setBodyFat] = useState("");
@@ -136,6 +153,34 @@ export default function MoreHealthPage() {
   const [medicationDose, setMedicationDose] = useState("");
   const [medicationSchedule, setMedicationSchedule] = useState("Daily");
   const [medicationTime, setMedicationTime] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const updateConnectionState = () => {
+      if (!userId) {
+        setHealthConnectConnected(false);
+        setHealthConnectLastSync(null);
+        return;
+      }
+      setHealthConnectConnected(isHealthConnectConnected(userId));
+      setHealthConnectLastSync(getHealthConnectLastSync(userId));
+    };
+
+    updateConnectionState();
+    window.addEventListener(healthConnectStateEvent, updateConnectionState);
+    void healthConnectAvailable()
+      .then((available) => {
+        if (active) setHealthConnectAvailableOnDevice(available);
+      })
+      .catch(() => {
+        if (active) setHealthConnectError("Could not check Health Connect availability.");
+      });
+
+    return () => {
+      active = false;
+      window.removeEventListener(healthConnectStateEvent, updateConnectionState);
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (!moreQuickOpen) return;
@@ -191,6 +236,54 @@ export default function MoreHealthPage() {
           ? saveError.message
           : "Could not save this health log.",
       );
+    }
+  }
+
+  async function connectToHealthConnect() {
+    if (!userId) {
+      setHealthConnectError("Your account is not ready to connect Health Connect.");
+      return;
+    }
+    setHealthConnectBusy(true);
+    setHealthConnectError("");
+    try {
+      await connectHealthConnectSteps(userId);
+      setHealthConnectConnected(true);
+      const result = await syncHealthConnectSteps(dayData.profile.timezone, userId);
+      setHealthConnectLastSync(result.lastSyncedAt);
+      await mutateCache("/api/day");
+      setNotice(`Synced ${result.steps.toLocaleString()} steps from Health Connect.`);
+    } catch (error) {
+      setHealthConnectError(
+        error instanceof Error
+          ? error.message
+          : "Could not connect to Health Connect.",
+      );
+    } finally {
+      setHealthConnectBusy(false);
+    }
+  }
+
+  async function refreshHealthConnectSteps() {
+    if (!userId) {
+      setHealthConnectError("Your account is not ready to sync steps.");
+      return;
+    }
+    setHealthConnectBusy(true);
+    setHealthConnectError("");
+    try {
+      const result = await syncHealthConnectSteps(dayData.profile.timezone, userId);
+      setHealthConnectLastSync(result.lastSyncedAt);
+      await mutateCache("/api/day");
+      setNotice(`Synced ${result.steps.toLocaleString()} steps from Health Connect.`);
+    } catch (error) {
+      setHealthConnectError(
+        error instanceof Error
+          ? error.message
+          : "Could not refresh Health Connect steps.",
+      );
+    } finally {
+      setHealthConnectBusy(false);
     }
   }
 
@@ -511,7 +604,64 @@ export default function MoreHealthPage() {
       {activePanel === "activity" ? (
         <section className="mt-5 rounded-3xl border border-line bg-card p-5 sm:p-7">
           <h2 className="text-xl font-semibold">Daily activity</h2>
-          <p className="mt-1 text-sm text-muted">Manual values can be updated later if you import device data.</p>
+          <p className="mt-1 text-sm text-muted">Use Health Connect for steps; active minutes and distance can still be entered manually.</p>
+          <div className="mt-5 rounded-2xl border border-line bg-paper p-4">
+            <h3 className="font-semibold">Google Health Connect</h3>
+            {healthConnectAvailableOnDevice ? (
+              <>
+                <p className="mt-1 text-sm text-muted">
+                  {healthConnectConnected ? "Connected" : "Not connected"}
+                  {healthConnectLastSync
+                    ? ` · Last synced ${new Intl.DateTimeFormat(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(healthConnectLastSync))}`
+                    : ""}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {healthConnectConnected ? (
+                    <>
+                      <button
+                        className="min-h-11 rounded-xl bg-brand px-4 font-medium text-white disabled:opacity-60"
+                        disabled={healthConnectBusy || !userId}
+                        onClick={() => void refreshHealthConnectSteps()}
+                        type="button"
+                      >
+                        {healthConnectBusy ? "Syncing..." : "Refresh steps"}
+                      </button>
+                      <button
+                        className="min-h-11 rounded-xl border border-line px-4 font-medium disabled:opacity-60"
+                        disabled={healthConnectBusy || !userId}
+                        onClick={() => void connectToHealthConnect()}
+                        type="button"
+                      >
+                        Reconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="min-h-11 rounded-xl bg-brand px-4 font-medium text-white disabled:opacity-60"
+                      disabled={healthConnectBusy || !userId}
+                      onClick={() => void connectToHealthConnect()}
+                      type="button"
+                    >
+                      {healthConnectBusy ? "Connecting..." : "Connect Health Connect"}
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-muted">
+                Automatic steps are available in the Android app. Enter steps
+                manually below on web or unsupported devices.
+              </p>
+            )}
+            {healthConnectError ? (
+              <p className="mt-3 text-sm text-red-700" role="alert">
+                {healthConnectError}
+              </p>
+            ) : null}
+          </div>
           <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={submitActivity}>
             <HealthInput label="Steps" min="0" max="100000" onChange={setSteps} step="1" type="number" value={steps || (day.activity ? String(day.activity.steps) : "")} />
             <HealthInput label="Active minutes" min="0" max="1440" onChange={setActiveMinutes} step="1" type="number" value={activeMinutes || (day.activity ? String(day.activity.activeMinutes) : "")} />

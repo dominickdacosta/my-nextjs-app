@@ -99,6 +99,36 @@ workout frequency and active time, running distance and pace records, strength
 progression, body measurements, sleep, and available vital measurements.
 Comparisons use equal-length adjacent periods.
 
+### Health Connect steps
+
+The Android companion reads today's aggregated steps from Health Connect after
+the user grants read-only step access. It syncs on app launch and resume; Android
+does not guarantee background app execution, so steps may not sync while Vitals
+is closed. The sync updates only daily steps and preserves manually logged
+active minutes and distance. On web and unsupported devices, steps can still be
+entered manually.
+
+This repository includes a Capacitor Android shell for local development. It
+loads the Next.js app from `CAPACITOR_SERVER_URL` because the app's authenticated
+API routes cannot be packaged as a static site. Start the dev server on the
+local network, then sync and open the Android project:
+
+```bash
+npm run dev
+npx cap sync android
+npx cap open android
+```
+
+The default server URL targets the Android emulator (`http://10.0.2.2:3000`).
+For a physical device, set `CAPACITOR_SERVER_URL` to the development computer's
+LAN address before `npx cap sync android`. For a production build, use the
+deployed HTTPS app URL and do not ship a development server URL. In Android
+Studio, install Android SDK 36 and use JDK 21 (Android Studio's bundled runtime
+is suitable), then run the `android/` project on an API 26+ device or emulator
+with Google Play Services and Health Connect available. Before releasing, set
+`android/healthfitness.config.json`'s `privacyPolicyUrl` to the app's publicly
+accessible privacy policy.
+
 ## Reminders and privacy
 
 The app is installable as a PWA. To deliver scheduled push reminders, generate

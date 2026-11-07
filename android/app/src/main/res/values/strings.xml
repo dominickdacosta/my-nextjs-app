@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vitals</string>
+    <string name="title_activity_main">Vitals</string>
+    <string name="package_name">com.vitals.health</string>
+    <string name="custom_url_scheme">com.vitals.health</string>
+    <string name="background_notification_title">Measuring your health and fitness data.</string>    <string name="background_notification_description">The app is running in the background.</string>    <string name="privacy_policy_url">https://github.com/dominickdacosta/my-nextjs-app/blob/develop/README.md#health-connect-steps</string>
+</resources>
