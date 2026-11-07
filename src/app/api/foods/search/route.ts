@@ -4,6 +4,7 @@ import { withUser } from "@/lib/api";
 import { getDb } from "@/lib/db/client";
 import { foodEntries } from "@/lib/db/schema";
 import type { FoodSearchResult } from "@/lib/health/food-search";
+import { mapOpenFoodFactsProducts } from "@/lib/health/open-food-facts";
 
 type FdcNutrient = {
   nutrientId?: number;
@@ -99,44 +100,112 @@ async function searchFoods(request: Request, userId: string) {
     if (history.length === 8) break;
   }
 
-  const apiKey = process.env.FDC_API_KEY;
-  if (!apiKey) return NextResponse.json({ results: history });
+  const [openFoodFacts, foodDataCentral] = await Promise.all([
+    searchOpenFoodFacts(query),
+    process.env.FDC_API_KEY
+      ? searchFoodDataCentral(query, process.env.FDC_API_KEY)
+      : Promise.resolve({ results: [] as FoodSearchResult[], warning: false }),
+  ]);
+  const results = [...history, ...foodDataCentral.results, ...openFoodFacts.results];
+  const warning = openFoodFacts.warning || foodDataCentral.warning;
+  if (warning && results.length === 0) {
+    return NextResponse.json(
+      { error: "Food search is temporarily unavailable." },
+      { status: 502 },
+    );
+  }
+  return NextResponse.json({
+    results,
+    ...(warning ? { warning: "Some food sources are temporarily unavailable." } : {}),
+  });
+}
 
+async function searchOpenFoodFacts(
+  query: string,
+): Promise<{ results: FoodSearchResult[]; warning: boolean }> {
+  const url = new URL("https://world.openfoodfacts.org/api/v2/search");
+  url.searchParams.set("search_terms", query);
+  url.searchParams.set(
+    "fields",
+    "code,product_name,brands,serving_size,nutriments",
+  );
+  url.searchParams.set("page_size", "12");
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: { "User-Agent": "VitalsHealthTracker/1.0" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) {
+      console.error(`Open Food Facts search failed (HTTP ${response.status}).`);
+      return searchOpenFoodFactsLegacy(query);
+    }
+    return {
+      results: mapOpenFoodFactsProducts(await response.json()),
+      warning: false,
+    };
+  } catch (error) {
+    const errorType = error instanceof Error ? error.name : "UnknownError";
+    console.error(`Open Food Facts search failed (${errorType}).`);
+    return searchOpenFoodFactsLegacy(query);
+  }
+}
+
+async function searchOpenFoodFactsLegacy(
+  query: string,
+): Promise<{ results: FoodSearchResult[]; warning: boolean }> {
+  const url = new URL("https://us.openfoodfacts.org/cgi/search.pl");
+  url.searchParams.set("search_terms", query);
+  url.searchParams.set("json", "1");
+  url.searchParams.set("page_size", "12");
+  url.searchParams.set("fields", "code,product_name,brands,serving_size,nutriments");
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: { "User-Agent": "VitalsHealthTracker/1.0" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) {
+      console.error(`Open Food Facts fallback search failed (HTTP ${response.status}).`);
+      return { results: [], warning: true };
+    }
+    return {
+      results: mapOpenFoodFactsProducts(await response.json()),
+      warning: false,
+    };
+  } catch (error) {
+    const errorType = error instanceof Error ? error.name : "UnknownError";
+    console.error(`Open Food Facts fallback search failed (${errorType}).`);
+    return { results: [], warning: true };
+  }
+}
+
+async function searchFoodDataCentral(
+  query: string,
+  apiKey: string,
+): Promise<{ results: FoodSearchResult[]; warning: boolean }> {
   const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
   url.searchParams.set("api_key", apiKey);
   url.searchParams.set("query", query);
   url.searchParams.set("pageSize", "12");
-
-  let response: Response;
   try {
-    response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const response = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) {
+      console.error(`FoodData Central search failed (HTTP ${response.status}).`);
+      return { results: [], warning: true };
+    }
+    const result = (await response.json()) as { foods?: FdcFood[] };
+    return {
+      results: (result.foods ?? []).map(mapFdcFood),
+      warning: false,
+    };
   } catch (error) {
     const errorType = error instanceof Error ? error.name : "UnknownError";
     console.error(`FoodData Central search failed (${errorType}).`);
-    return NextResponse.json(
-      { error: "Food search is temporarily unavailable." },
-      { status: 502 },
-    );
-  }
-  if (!response.ok) {
-    console.error(`FoodData Central search failed (HTTP ${response.status}).`);
-    return NextResponse.json(
-      { error: "Food search is temporarily unavailable." },
-      { status: 502 },
-    );
-  }
-
-  try {
-    const result = (await response.json()) as { foods?: FdcFood[] };
-    const external = (result.foods ?? []).map(mapFdcFood);
-    return NextResponse.json({ results: [...history, ...external] });
-  } catch (error) {
-    const errorType = error instanceof Error ? error.name : "UnknownError";
-    console.error(`FoodData Central response was invalid (${errorType}).`);
-    return NextResponse.json(
-      { error: "Food search returned an invalid response." },
-      { status: 502 },
-    );
+    return { results: [], warning: true };
   }
 }
 

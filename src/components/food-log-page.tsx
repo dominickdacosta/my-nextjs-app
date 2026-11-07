@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import useSWR from "swr";
 import { DateSwitcher } from "@/components/today-dashboard";
 import { useAppContext } from "@/components/app-shell";
@@ -70,6 +70,9 @@ export default function FoodLogPage() {
   const [activeMeal, setActiveMeal] = useState<
     DayFoodEntry["meal"] | null
   >(null);
+  const [formHighlighted, setFormHighlighted] = useState(false);
+  const [formFocusRequest, setFormFocusRequest] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState("");
   const [servings, setServings] = useState("1");
   const [calories, setCalories] = useState("");
@@ -80,6 +83,9 @@ export default function FoodLogPage() {
   const [nutritionSource, setNutritionSource] = useState<
     DayFoodEntry["nutritionSource"]
   >("manual");
+  const [selectedFoodSource, setSelectedFoodSource] = useState<
+    "fdc" | "open-food-facts" | null
+  >(null);
   const [entryNotes, setEntryNotes] = useState("");
   const [foodDescription, setFoodDescription] = useState("");
   const [parsedIngredients, setParsedIngredients] = useState<
@@ -91,6 +97,7 @@ export default function FoodLogPage() {
   const [searchResults, setSearchResults] = useState<FoodSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [searchWarning, setSearchWarning] = useState("");
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
   const [deletedEntry, setDeletedEntry] = useState<DayFoodEntry | null>(null);
@@ -109,10 +116,30 @@ export default function FoodLogPage() {
   }, [data?.date]);
 
   useEffect(() => {
+    const requestedMeal = new URLSearchParams(window.location.search).get("meal");
+    const meal = meals.find((item) => item.id === requestedMeal);
+    if (meal) setActiveMeal(meal.id);
+  }, []);
+
+  useEffect(() => {
+    if (!activeMeal || !formRef.current) return;
+    setFormHighlighted(true);
+    formRef.current.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "center",
+    });
+    const timeout = window.setTimeout(() => setFormHighlighted(false), 1800);
+    return () => window.clearTimeout(timeout);
+  }, [activeMeal, formFocusRequest]);
+
+  useEffect(() => {
     const query = searchText.trim();
     if (!activeMeal || query.length < 2) {
       setSearchResults([]);
       setSearchError("");
+      setSearchWarning("");
       setSearchLoading(false);
       return;
     }
@@ -121,6 +148,7 @@ export default function FoodLogPage() {
     const timeout = window.setTimeout(() => {
       setSearchLoading(true);
       setSearchError("");
+      setSearchWarning("");
       void fetch(`/api/foods/search?q=${encodeURIComponent(query)}`, {
         signal: controller.signal,
       })
@@ -129,9 +157,15 @@ export default function FoodLogPage() {
             const result = (await response.json()) as { error?: string };
             throw new Error(result.error ?? "Could not search foods.");
           }
-          return (await response.json()) as { results: FoodSearchResult[] };
+          return (await response.json()) as {
+            results: FoodSearchResult[];
+            warning?: string;
+          };
         })
-        .then((result) => setSearchResults(result.results))
+        .then((result) => {
+          setSearchResults(result.results);
+          setSearchWarning(result.warning ?? "");
+        })
         .catch((searchFailure: unknown) => {
           if (controller.signal.aborted) return;
           setSearchError(
@@ -189,6 +223,7 @@ export default function FoodLogPage() {
     setFat("");
     setFiber("");
     setNutritionSource("manual");
+    setSelectedFoodSource(null);
     setEntryNotes("");
     setFoodDescription("");
     setParsedIngredients(null);
@@ -200,6 +235,11 @@ export default function FoodLogPage() {
     setActiveMeal(null);
   }
 
+  function focusMealForm(meal: DayFoodEntry["meal"]) {
+    setActiveMeal(meal);
+    setFormFocusRequest((request) => request + 1);
+  }
+
   function chooseSearchResult(result: FoodSearchResult) {
     setName(result.name);
     setServings("1");
@@ -209,6 +249,11 @@ export default function FoodLogPage() {
     setFat(result.fatG === null ? "" : String(result.fatG));
     setFiber(result.fiberG === null ? "" : String(result.fiberG));
     setNutritionSource(result.nutritionSource);
+    setSelectedFoodSource(
+      result.source === "fdc" || result.source === "open-food-facts"
+        ? result.source
+        : null,
+    );
     setEntryNotes("");
     setParsedIngredients(null);
     setSearchText("");
@@ -216,7 +261,7 @@ export default function FoodLogPage() {
   }
 
   function editFood(entry: DayFoodEntry) {
-    setActiveMeal(entry.meal);
+    focusMealForm(entry.meal);
     setEditingEntry(entry);
     setName(entry.name);
     setServings(String(entry.servings));
@@ -226,6 +271,7 @@ export default function FoodLogPage() {
     setFat(entry.fatG === null ? "" : String(entry.fatG));
     setFiber(entry.fiberG === null ? "" : String(entry.fiberG));
     setNutritionSource(entry.nutritionSource);
+    setSelectedFoodSource(null);
     setEntryNotes(entry.notes ?? "");
     setFoodDescription(entry.name);
     setParsedIngredients(null);
@@ -267,6 +313,7 @@ export default function FoodLogPage() {
       setName(foodDescription.trim());
       setServings("1");
       setNutritionSource("estimated");
+      setSelectedFoodSource(null);
       setEntryNotes(
         `Estimated ingredients: ${result.ingredients
           .map((ingredient) => `${ingredient.quantity} ${ingredient.unit} ${ingredient.name}`)
@@ -323,6 +370,7 @@ export default function FoodLogPage() {
   function editNutrition(setter: (value: string) => void, value: string) {
     setter(value);
     setNutritionSource("manual");
+    setSelectedFoodSource(null);
     setParsedIngredients(null);
     setEntryNotes("");
   }
@@ -630,8 +678,13 @@ export default function FoodLogPage() {
 
       {activeMeal ? (
         <form
-          className="mt-6 grid gap-4 rounded-3xl border border-line bg-card p-5 sm:grid-cols-2 sm:p-7"
+          className={`mt-6 grid gap-4 rounded-3xl border bg-card p-5 transition-shadow sm:grid-cols-2 sm:p-7 ${
+            formHighlighted
+              ? "border-brand ring-2 ring-brand shadow-lg"
+              : "border-line"
+          }`}
           onSubmit={(event) => void addFood(event)}
+          ref={formRef}
         >
           <div className="sm:col-span-2">
             <h2 className="text-xl font-semibold">
@@ -707,8 +760,20 @@ export default function FoodLogPage() {
             </summary>
           <div className="grid gap-2 sm:col-span-2">
             <label className="text-sm font-medium" htmlFor="food-search">
-              Search your recent foods and FoodData Central
+              Search recent foods, Open Food Facts, and USDA
             </label>
+            <p className="text-xs text-muted">
+              Search terms are sent to{" "}
+              <a
+                className="underline"
+                href="https://world.openfoodfacts.org/"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Open Food Facts
+              </a>
+              {" "}and, when configured, USDA FoodData Central.
+            </p>
             <input
               autoComplete="off"
               className="min-h-12 rounded-xl border border-line bg-paper px-3 text-base"
@@ -720,6 +785,7 @@ export default function FoodLogPage() {
             />
             {searchLoading ? <p aria-live="polite" className="text-sm text-muted" role="status">Searching foods...</p> : null}
             {searchError ? <p className="text-sm text-red-700" role="alert">{searchError}</p> : null}
+            {searchWarning ? <p className="text-sm text-muted" role="status">{searchWarning}</p> : null}
             {searchResults.length ? (
               <ul aria-label="Food search results" className="max-h-64 divide-y divide-line overflow-y-auto rounded-xl border border-line bg-paper">
                 {searchResults.map((result) => (
@@ -739,7 +805,12 @@ export default function FoodLogPage() {
                           !day.profile.hideCalories && result.kcal !== null
                             ? `${formatAmount(result.kcal)} kcal`
                             : null,
-                        ].filter(Boolean).join(" · ") || (result.source === "history" ? "Previous food" : "FoodData Central")}
+                          result.source === "open-food-facts"
+                            ? "Open Food Facts · community data"
+                            : result.source === "fdc"
+                              ? "USDA FoodData Central"
+                              : "Previous food",
+                        ].filter(Boolean).join(" · ")}
                       </span>
                     </button>
                   </li>
@@ -762,7 +833,11 @@ export default function FoodLogPage() {
               Estimate from a built-in food reference. Portions and preparation vary; this is not verified label data.
             </p>
           ) : nutritionSource === "verified" ? (
-            <p className="text-sm text-muted sm:col-span-2">Values selected from FoodData Central.</p>
+            <p className="text-sm text-muted sm:col-span-2">Values selected from USDA FoodData Central.</p>
+          ) : selectedFoodSource === "open-food-facts" ? (
+            <p className="text-sm text-muted sm:col-span-2">
+              Open Food Facts values are community-contributed. Check them against the product label.
+            </p>
           ) : null}
           <div className="flex items-center gap-3 sm:col-span-2">
             <button className="min-h-12 rounded-xl bg-brand px-5 font-semibold text-white" type="submit">
@@ -800,7 +875,7 @@ export default function FoodLogPage() {
                   className="min-h-11 rounded-xl border border-line px-3 text-sm font-medium"
                   onClick={() => {
                     setActionError("");
-                    setActiveMeal(meal.id);
+                    focusMealForm(meal.id);
                   }}
                   type="button"
                 >
@@ -828,7 +903,7 @@ export default function FoodLogPage() {
                         </p>
                         <p className="mt-1 text-xs text-muted">
                           {entry.nutritionSource === "verified"
-                            ? "FoodData Central"
+                            ? "USDA FoodData Central"
                             : entry.nutritionSource === "estimated"
                               ? "Estimated nutrition"
                               : "Manually entered"}

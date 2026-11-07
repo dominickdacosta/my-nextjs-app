@@ -20,15 +20,6 @@ export type DayMeasurement = {
   thighCm?: number | null;
 };
 
-export type DayCheckin = {
-  id: string;
-  loggedOn: string;
-  loggedAt?: string;
-  energy: number | null;
-  stress?: number | null;
-  soreness?: number | null;
-};
-
 export type DayFoodEntry = {
   id: string;
   loggedOn: string;
@@ -92,7 +83,6 @@ export type DayPayload = {
   water: { entries: DayWaterEntry[]; totalMl: number };
   measurements: DayMeasurement[];
   weight: DayMeasurement | null;
-  checkin: DayCheckin | null;
   activity: {
     steps: number;
     activeMinutes: number;
@@ -114,12 +104,7 @@ export type DayPayload = {
 
 export type QuickLogInput =
   | { kind: "water"; loggedOn: string; amountMl: number }
-  | { kind: "weight"; loggedOn: string; weightKg: number }
-  | {
-      kind: "checkin";
-      loggedOn: string;
-      energy?: number;
-    };
+  | { kind: "weight"; loggedOn: string; weightKg: number };
 
 export function updateDayOptimistically(
   day: DayPayload,
@@ -159,16 +144,5 @@ export function updateDayOptimistically(
     };
   }
 
-  const checkin = day.checkin ?? {
-    id,
-    loggedOn: input.loggedOn,
-    energy: null,
-  };
-  return {
-    ...day,
-    checkin: {
-      ...checkin,
-      energy: input.energy ?? checkin.energy,
-    },
-  };
+  return day;
 }

@@ -58,13 +58,17 @@ Database migrations use the standard PostgreSQL `pg` driver. Set `DATABASE_URL`
 to the connection string for the exact Vercel environment/database you intend
 to initialize before running `npm run db:migrate`.
 
-Food logging supports manual entries and recent-food search by default. Set
-`FDC_API_KEY` to enable USDA FoodData Central search; the key is used only by
-the server-side search route. Natural-language meal estimates use a built-in
-reference for common foods and Indian dishes; they are approximate, clearly
-labelled, and do not require an AI service or API key. Unsupported foods are
-not assigned invented nutrition values. You can search FoodData Central,
-correct values, edit saved entries, repeat recent meals, or save favorites.
+Food logging searches recent entries and the free Open Food Facts API. Search
+terms are sent to Open Food Facts; results can also include USDA FoodData
+Central when `FDC_API_KEY` is configured. The USDA key is used only by the
+server-side search route and can be requested for free at
+[api.data.gov/signup](https://api.data.gov/signup/). Open Food Facts nutrition
+is community-contributed, so verify values against packaging.
+Natural-language meal estimates use a built-in reference for common foods and
+Indian dishes; they are approximate, clearly labelled, and do not require an
+AI service or API key. Unsupported foods are not assigned invented nutrition
+values. You can correct values, edit saved entries, repeat recent meals, or
+save favorites.
 
 ## Running and Strava
 
@@ -146,9 +150,8 @@ the reminder endpoint daily at 09:00 UTC to fit the Hobby Cron limit. Daily
 reminders are sent at that run (the local time varies by timezone); weekday
 preferences are evaluated in each profile timezone. More frequent and
 per-reminder-time delivery requires a Vercel plan that supports more frequent
-Cron Jobs. Notifications use generic wording and never contain medication
-names or health values. Push delivery is best-effort and requires browser
-notification permission.
+Cron Jobs. Notifications use generic wording and never contain health values.
+Push delivery is best-effort and requires browser notification permission.
 
 Use **More → Privacy and support** to download a private JSON backup or
 restore a Vitals backup (merge; conflicting records are skipped), or

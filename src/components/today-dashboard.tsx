@@ -10,13 +10,6 @@ import { estimateCaloriesFromSteps } from "@/lib/health/energy";
 import { flOzToMl, formatVolume, formatWeight } from "@/lib/health/units";
 
 const meals = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
-const energyOptions = [
-  { value: 1, icon: "🪫", label: "Very low" },
-  { value: 2, icon: "😴", label: "Low" },
-  { value: 3, icon: "😶", label: "Okay" },
-  { value: 4, icon: "⚡", label: "Good" },
-  { value: 5, icon: "✨", label: "High" },
-];
 
 async function fetchDay(url: string): Promise<DayPayload> {
   const response = await fetch(url);
@@ -108,14 +101,6 @@ export default function TodayDashboard() {
 
   function addWater(amountMl: number) {
     runLog({ kind: "water", amountMl, loggedOn: day.date });
-  }
-
-  function logEnergy(value: number) {
-    runLog({
-      kind: "checkin",
-      loggedOn: day.date,
-      energy: value,
-    });
   }
 
   async function deleteWater(entry: DayWaterEntry) {
@@ -472,21 +457,6 @@ export default function TodayDashboard() {
           </div>
         </article>
 
-        <article className="rounded-3xl border border-line bg-card p-5 sm:p-7">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted">Daily check-in</p>
-              <h2 className="mt-1 text-2xl font-semibold">Energy</h2>
-            </div>
-            <span aria-hidden="true" className="text-3xl">⚡</span>
-          </div>
-          <RatingRow
-            label="Energy"
-            onSelect={logEnergy}
-            options={energyOptions}
-            selected={data.checkin?.energy ?? null}
-          />
-        </article>
       </section>
       {deletedWaterEntry ? (
         <div
@@ -522,7 +492,7 @@ export default function TodayDashboard() {
         </article>
         <article className="rounded-3xl border border-line bg-card p-5 sm:p-7">
           <p className="text-sm font-medium text-muted">Consistency</p>
-          <h2 className="mt-1 text-2xl font-semibold">Every check-in counts</h2>
+          <h2 className="mt-1 text-2xl font-semibold">Your consistency grows over time</h2>
           <p className="mt-3 text-sm leading-6 text-muted">
             Your personal streaks and weekly trends will build as you log over time.
           </p>
@@ -620,39 +590,5 @@ function MetricCard({
         />
       ) : null}
     </article>
-  );
-}
-
-function RatingRow({
-  label,
-  options,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  options: typeof energyOptions;
-  selected: number | null;
-  onSelect: (value: number) => void;
-}) {
-  return (
-    <fieldset className="mt-5">
-      <legend className="mb-2 text-sm font-medium">{label}</legend>
-      <div className="grid grid-cols-5 gap-2">
-        {options.map((option) => (
-          <button
-            aria-label={`${label}: ${option.label}`}
-            aria-pressed={selected === option.value}
-            className={`min-h-12 rounded-xl border text-2xl ${
-              selected === option.value ? "border-brand bg-brand/10" : "border-line bg-paper"
-            }`}
-            key={option.value}
-            onClick={() => onSelect(option.value)}
-            type="button"
-          >
-            {option.icon}
-          </button>
-        ))}
-      </div>
-    </fieldset>
   );
 }

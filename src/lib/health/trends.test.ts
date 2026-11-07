@@ -30,7 +30,6 @@ describe("health trends", () => {
         activeMinutes: 10,
         source: "health-connect",
       }],
-      checkins: [{ loggedOn: "2026-03-15", energy: 3 }],
       vitals: [],
     });
 
@@ -49,7 +48,6 @@ describe("health trends", () => {
       avgRunPaceSecPerKm: 360,
       sleepMinutes: 420,
       steps: 4000,
-      energy: 3,
       hasLog: true,
     });
     expect(days[1].hasLog).toBe(false);
@@ -69,7 +67,6 @@ describe("health trends", () => {
         activeMinutes: 20,
         source: "manual",
       }],
-      checkins: [],
       vitals: [],
     });
 
@@ -86,7 +83,6 @@ describe("health trends", () => {
         workouts: [{ loggedOn: "2026-03-16", durationMin: 30, type: "run", distanceM: 3000 }],
         sleep: [],
         activity: [],
-        checkins: [],
         vitals: [],
       });
       const previous = aggregateTrendDays({
@@ -97,7 +93,6 @@ describe("health trends", () => {
         workouts: [{ loggedOn: "2026-03-15", durationMin: 20, type: "run", distanceM: 2000 }],
         sleep: [],
         activity: [],
-        checkins: [],
         vitals: [],
       });
       expect(compareLoggedTotals(current, previous)).toMatchObject({
@@ -156,7 +151,6 @@ describe("health trends", () => {
       ],
       sleep: [],
       activity: [],
-      checkins: [],
       vitals: [],
     });
 

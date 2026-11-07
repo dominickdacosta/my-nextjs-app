@@ -5,7 +5,6 @@ import { getDb } from "@/lib/db/client";
 import {
   bodyMeasurements,
   dailyActivity,
-  dailyCheckins,
   foodEntries,
   exercises,
   goals,
@@ -59,7 +58,6 @@ async function getTrends(request: Request, userId: string) {
     workoutRows,
     sleep,
     activity,
-    checkins,
     vitalDays,
     goalRows,
     strengthRows,
@@ -150,19 +148,6 @@ async function getTrends(request: Request, userId: string) {
         ),
       ),
     db
-      .select({
-        loggedOn: dailyCheckins.loggedOn,
-        energy: dailyCheckins.energy,
-      })
-      .from(dailyCheckins)
-      .where(
-        and(
-          eq(dailyCheckins.userId, userId),
-          gte(dailyCheckins.loggedOn, comparisonFrom),
-          lte(dailyCheckins.loggedOn, today),
-        ),
-      ),
-    db
       .select({ loggedOn: vitals.loggedOn })
       .from(vitals)
       .where(
@@ -248,7 +233,6 @@ async function getTrends(request: Request, userId: string) {
     workouts: workoutRows,
     sleep,
     activity,
-    checkins,
     vitals: vitalDays,
   });
   const currentDays = trendDays.filter((day) => day.date >= from);

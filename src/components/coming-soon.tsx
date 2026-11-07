@@ -12,7 +12,7 @@ export default function ComingSoon({
       <section className="mt-7 rounded-3xl border border-line bg-card p-6 sm:p-8">
         <p className="max-w-xl leading-7 text-muted">{description}</p>
         <p className="mt-4 text-sm text-muted">
-          You can still add water, weight, and an energy check-in with the quick log.
+          Use the quick log to add water or weight.
         </p>
       </section>
     </main>

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { timingSafeEqual } from "node:crypto";
 import webpush from "web-push";
 import { NextResponse } from "next/server";
@@ -50,7 +50,12 @@ export async function GET(request: Request) {
     })
     .from(reminders)
     .innerJoin(profiles, eq(profiles.userId, reminders.userId))
-    .where(eq(reminders.enabled, true));
+    .where(
+      and(
+        eq(reminders.enabled, true),
+        ne(reminders.kind, "medication"),
+      ),
+    );
 
   const now = new Date();
   const scheduledFor = new Date(

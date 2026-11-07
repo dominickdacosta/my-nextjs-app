@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { invalidInput, readJson, withUser } from "@/lib/api";
 import { getDb } from "@/lib/db/client";
@@ -15,7 +15,7 @@ export const GET = withUser(async (_request, userId) => {
       enabled: reminders.enabled,
     })
     .from(reminders)
-    .where(eq(reminders.userId, userId))
+    .where(and(eq(reminders.userId, userId), ne(reminders.kind, "medication")))
     .orderBy(asc(reminders.time));
   return NextResponse.json(rows, {
     headers: { "Cache-Control": "private, no-store" },
