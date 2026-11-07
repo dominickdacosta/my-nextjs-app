@@ -1,6 +1,6 @@
-import { signIn } from "@/lib/auth";
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants";
+import SignInButtons from "@/components/sign-in-buttons";
 
 const availableProviders = [
   process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
@@ -24,30 +24,7 @@ export default function SignInPage() {
       <p className="mt-3 text-muted">
         Your health information is private to your account.
       </p>
-      <div className="mt-8 grid gap-3">
-        {availableProviders.map((provider) => (
-          <form
-            action={async () => {
-              "use server";
-              await signIn(provider.id, { redirectTo: "/" });
-            }}
-            key={provider.id}
-          >
-            <button
-              className="min-h-11 w-full rounded-xl border border-line bg-card px-4 font-medium"
-              type="submit"
-            >
-              {provider.label}
-            </button>
-          </form>
-        ))}
-        {availableProviders.length === 0 ? (
-          <p className="rounded-2xl border border-line p-4 text-sm text-muted">
-            Sign-in is not configured yet. Add a GitHub, Google, or Resend
-            provider to the environment before enabling accounts.
-          </p>
-        ) : null}
-      </div>
+      <SignInButtons providers={availableProviders} />
     </main>
   );
 }
