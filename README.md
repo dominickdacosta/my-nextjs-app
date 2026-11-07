@@ -33,6 +33,10 @@ preview. Add them to Production separately if needed. The Google button appears
 on `/signin` once both variables are present. Do not send OAuth secrets in chat
 or commit them to the repository.
 
+Google sign-in uses OAuth state and OIDC nonce checks. PKCE is omitted because
+the Android WebView does not reliably preserve Auth.js's verifier cookie across
+the Google sign-in redirect.
+
 For local database development, use a dedicated Neon development branch or
 PostgreSQL 16 in Docker (`docker compose up -d`). For Docker, set
 `DATABASE_URL=postgres://postgres:postgres@localhost:5432/vitals`. Never point
