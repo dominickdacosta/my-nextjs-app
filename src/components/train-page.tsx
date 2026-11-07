@@ -5,6 +5,9 @@ import useSWR, { useSWRConfig } from "swr";
 import { DateSwitcher } from "@/components/today-dashboard";
 import { useAppContext } from "@/components/app-shell";
 import type { DayPayload } from "@/lib/health/day";
+import RunTracker from "@/components/run-tracker";
+import StravaPanel from "@/components/strava-panel";
+import { RunRoutePreview } from "@/components/run-tracker";
 import { addDays, dateRange, todayFor, weekStart } from "@/lib/health/dates";
 import type {
   ExerciseSearchResult,
@@ -18,6 +21,7 @@ import {
   lbToKg,
   milesToMeters,
 } from "@/lib/health/units";
+import { decodeEncodedPolyline } from "@/lib/health/running";
 
 const typeLabels: Record<TrainingType, string> = {
   strength: "Strength",
@@ -25,6 +29,26 @@ const typeLabels: Record<TrainingType, string> = {
   walk: "Walk",
   run: "Run",
   other: "Other",
+};
+const quickActivities = [
+  { title: "Weight training", type: "strength" },
+  { title: "Football", type: "cardio" },
+  { title: "Walking", type: "walk" },
+  { title: "Running", type: "run" },
+  { title: "Cycling", type: "cardio" },
+  { title: "Swimming", type: "cardio" },
+  { title: "Other", type: "other" },
+] as const;
+type WorkoutTemplate = {
+  id: string;
+  name: string;
+  exercises: Array<{
+    exerciseId: string;
+    name: string;
+    targetSets: number;
+    targetReps: number;
+    targetWeightKg: number | null;
+  }>;
 };
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -66,7 +90,16 @@ export default function TrainPage() {
     isLoading: workoutsLoading,
     mutate: mutateWorkouts,
   } = useSWR<WorkoutRecord[]>(workoutsKey, fetchJson);
+  const {
+    data: templates,
+    error: templateError,
+    mutate: mutateTemplates,
+  } = useSWR<WorkoutTemplate[]>("/api/workout-templates", fetchJson);
   const [formOpen, setFormOpen] = useState(false);
+  const [quickFormOpen, setQuickFormOpen] = useState(false);
+  const [quickActivity, setQuickActivity] = useState<string>("Walking");
+  const [quickDuration, setQuickDuration] = useState("30");
+  const [quickNotes, setQuickNotes] = useState("");
   const [type, setType] = useState<TrainingType>(trainingType);
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState("");
@@ -91,7 +124,7 @@ export default function TrainPage() {
   useEffect(() => {
     if (!trainingQuickOpen) return;
     setType(trainingType);
-    setFormOpen(true);
+    setQuickFormOpen(true);
     setTrainingQuickOpen(false);
   }, [setTrainingQuickOpen, trainingQuickOpen, trainingType]);
 
@@ -268,6 +301,183 @@ export default function TrainPage() {
     }
   }
 
+  async function saveQuickActivity(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setActionError("");
+    const activity = quickActivities.find((item) => item.title === quickActivity);
+    if (!activity) {
+      setActionError("Choose an activity type.");
+      return;
+    }
+    try {
+      const response = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loggedOn: dayData.date,
+          type: activity.type,
+          title: activity.title,
+          durationMin: Number(quickDuration),
+          caloriesEstimated: false,
+          notes: quickNotes.trim() || null,
+        }),
+      });
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        throw new Error(result.error ?? "Could not save this activity.");
+      }
+      setQuickFormOpen(false);
+      setQuickDuration("30");
+      setQuickNotes("");
+      await mutateWorkouts();
+      await mutateCache(dayKey(selectedDate));
+    } catch (saveError) {
+      setActionError(
+        saveError instanceof Error ? saveError.message : "Could not save this activity.",
+      );
+    }
+  }
+
+  async function repeatLastStrengthWorkout() {
+    const previous = weekWorkouts.find(
+      (workout) => workout.type === "strength" && workout.source !== "strava",
+    );
+    if (!previous) return;
+    setActionError("");
+    try {
+      const response = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loggedOn: dayData.date,
+          type: previous.type,
+          title: previous.title,
+          durationMin: previous.durationMin,
+          durationSeconds: previous.durationSeconds,
+          caloriesEstimated: false,
+          notes: previous.notes,
+          sets: previous.sets.map((set) => ({
+            exerciseId: set.exerciseId,
+            reps: set.reps,
+            weightKg: set.weightKg,
+            durationS: set.durationS,
+            distanceM: set.distanceM,
+            rpe: set.rpe,
+            isWarmup: set.isWarmup,
+          })),
+        }),
+      });
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        throw new Error(result.error ?? "Could not repeat this workout.");
+      }
+      await mutateWorkouts();
+      await mutateCache(dayKey(selectedDate));
+    } catch (repeatError) {
+      setActionError(
+        repeatError instanceof Error
+          ? repeatError.message
+          : "Could not repeat this workout.",
+      );
+    }
+  }
+
+  async function saveLastStrengthAsTemplate() {
+    const previous = weekWorkouts.find(
+      (workout) => workout.type === "strength" && workout.source !== "strava",
+    );
+    if (!previous) return;
+    const byExercise = new Map<string, typeof previous.sets>();
+    for (const set of previous.sets) {
+      if (!set.exerciseId) continue;
+      byExercise.set(set.exerciseId, [
+        ...(byExercise.get(set.exerciseId) ?? []),
+        set,
+      ]);
+    }
+    const exercises = Array.from(byExercise, ([exerciseId, sets]) => ({
+      exerciseId,
+      targetSets: sets.length,
+      targetReps: sets[0].reps ?? 0,
+      targetWeightKg: sets[sets.length - 1].weightKg,
+    }));
+    if (!exercises.length) {
+      setActionError("Log exercise sets before saving a workout template.");
+      return;
+    }
+    setActionError("");
+    try {
+      const response = await fetch("/api/workout-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${previous.title || "Strength"} template`,
+          exercises,
+        }),
+      });
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        throw new Error(result.error ?? "Could not save this template.");
+      }
+      await mutateTemplates();
+    } catch (saveError) {
+      setActionError(
+        saveError instanceof Error ? saveError.message : "Could not save this template.",
+      );
+    }
+  }
+
+  async function startTemplate(template: WorkoutTemplate) {
+    setActionError("");
+    try {
+      const response = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loggedOn: dayData.date,
+          type: "strength",
+          title: template.name,
+          caloriesEstimated: false,
+          sets: template.exercises.flatMap((exercise) =>
+            Array.from({ length: exercise.targetSets }, () => ({
+              exerciseId: exercise.exerciseId,
+              reps: exercise.targetReps,
+              weightKg: exercise.targetWeightKg,
+            })),
+          ),
+        }),
+      });
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        throw new Error(result.error ?? "Could not start this template.");
+      }
+      await mutateWorkouts();
+      await mutateCache(dayKey(selectedDate));
+    } catch (startError) {
+      setActionError(
+        startError instanceof Error ? startError.message : "Could not start this template.",
+      );
+    }
+  }
+
+  async function deleteTemplate(templateId: string) {
+    setActionError("");
+    try {
+      const response = await fetch(`/api/workout-templates/${encodeURIComponent(templateId)}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        throw new Error(result.error ?? "Could not delete this template.");
+      }
+      await mutateTemplates();
+    } catch (deleteError) {
+      setActionError(
+        deleteError instanceof Error ? deleteError.message : "Could not delete this template.",
+      );
+    }
+  }
+
   async function deleteWorkout(workout: WorkoutRecord) {
     const previous = weekWorkouts;
     const remove = (current: WorkoutRecord[] | undefined): WorkoutRecord[] =>
@@ -356,6 +566,28 @@ export default function TrainPage() {
 
       {actionError ? <p className="mb-4 text-sm text-red-700" role="alert">{actionError}</p> : null}
       {workoutError ? <p className="mb-4 text-sm text-red-700" role="alert">{workoutError.message}</p> : null}
+      {templateError ? <p className="mb-4 text-sm text-red-700" role="alert">{templateError.message}</p> : null}
+      <StravaPanel
+        onSynced={() => {
+          void Promise.all([
+            mutateWorkouts(),
+            mutateCache(dayKey(selectedDate)),
+          ]).catch(() => setActionError("Strava synced, but your activity view could not refresh."));
+        }}
+      />
+      {viewingToday ? (
+        <RunTracker
+          date={day.date}
+          onSaved={() => {
+            void Promise.all([
+              mutateWorkouts(),
+              mutateCache(dayKey(selectedDate)),
+            ]).catch(() => setActionError("Run saved, but your activity view could not refresh."));
+          }}
+          unitSystem={day.profile.unitSystem}
+          weightKg={day.weight?.weightKg ?? null}
+        />
+      ) : null}
 
       <section aria-label="Weekly training history" className="rounded-3xl border border-line bg-card p-5 sm:p-7">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -365,7 +597,27 @@ export default function TrainPage() {
               {weekWorkouts.length} {weekWorkouts.length === 1 ? "workout" : "workouts"}
             </h2>
           </div>
-          <p className="text-sm text-muted">{weeklyMinutes} active minutes</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-muted">{weeklyMinutes} active minutes</p>
+            {weekWorkouts.some((workout) => workout.type === "strength" && workout.source !== "strava") ? (
+              <>
+                <button
+                  className="min-h-11 rounded-xl border border-line px-3 text-sm font-medium"
+                  onClick={() => void repeatLastStrengthWorkout()}
+                  type="button"
+                >
+                  Repeat last strength workout
+                </button>
+                <button
+                  className="min-h-11 rounded-xl border border-line px-3 text-sm font-medium"
+                  onClick={() => void saveLastStrengthAsTemplate()}
+                  type="button"
+                >
+                  Save as template
+                </button>
+              </>
+            ) : null}
+          </div>
         </div>
         <div className="mt-5 grid grid-cols-7 gap-2">
           {weekDates.map((date) => {
@@ -399,23 +651,99 @@ export default function TrainPage() {
         </div>
       </section>
 
+      {templates?.length ? (
+        <section aria-label="Workout templates" className="mt-5 rounded-3xl border border-line bg-card p-5 sm:p-7">
+          <h2 className="text-xl font-semibold">Workout templates</h2>
+          <ul className="mt-3 divide-y divide-line">
+            {templates.map((template) => (
+              <li className="flex flex-wrap items-center justify-between gap-3 py-3" key={template.id}>
+                <div>
+                  <p className="font-medium">{template.name}</p>
+                  <p className="text-sm text-muted">
+                    {template.exercises.map((exercise) => `${exercise.name} · ${exercise.targetSets} × ${exercise.targetReps}`).join("; ")}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button className="min-h-11 rounded-xl bg-brand px-3 text-sm font-medium text-white" onClick={() => void startTemplate(template)} type="button">Start</button>
+                  <button className="min-h-11 rounded-xl border border-line px-3 text-sm" onClick={() => void deleteTemplate(template.id)} type="button">Delete</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="mt-5 rounded-3xl border border-line bg-card p-5 sm:p-7">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm text-muted">{dateLabel}</p>
             <h2 className="mt-1 text-2xl font-semibold">Your activity</h2>
           </div>
-          <button
-            className="min-h-11 rounded-xl bg-brand px-4 font-medium text-white"
-            onClick={() => {
-              setType(trainingType);
-              setFormOpen(true);
-            }}
-            type="button"
-          >
-            Log activity
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="min-h-11 rounded-xl bg-brand px-4 font-medium text-white"
+              onClick={() => setQuickFormOpen(true)}
+              type="button"
+            >
+              Quick log
+            </button>
+            <button
+              className="min-h-11 rounded-xl border border-line px-4 font-medium"
+              onClick={() => {
+                setType(trainingType);
+                setFormOpen(true);
+              }}
+              type="button"
+            >
+              Detailed log
+            </button>
+          </div>
         </header>
+
+        {quickFormOpen ? (
+          <form
+            className="mt-5 grid gap-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-5"
+            onSubmit={(event) => void saveQuickActivity(event)}
+          >
+            <label className="grid gap-2 text-sm font-medium">
+              Activity
+              <select
+                className="min-h-12 rounded-xl border border-line bg-paper px-3"
+                onChange={(event) => setQuickActivity(event.target.value)}
+                value={quickActivity}
+              >
+                {quickActivities.map((activity) => (
+                  <option key={activity.title} value={activity.title}>{activity.title}</option>
+                ))}
+              </select>
+            </label>
+            <TrainingInput
+              label="Duration (minutes)"
+              min="1"
+              onChange={setQuickDuration}
+              required
+              step="1"
+              type="number"
+              value={quickDuration}
+            />
+            <label className="grid gap-2 text-sm font-medium sm:col-span-2">
+              Notes (optional)
+              <textarea
+                className="min-h-16 rounded-xl border border-line bg-paper p-3"
+                maxLength={2000}
+                onChange={(event) => setQuickNotes(event.target.value)}
+                value={quickNotes}
+              />
+            </label>
+            <p className="text-xs text-muted sm:col-span-2">
+              Calories are estimated only when your latest logged weight and activity type support an estimate.
+            </p>
+            <div className="flex gap-3 sm:col-span-2">
+              <button className="min-h-11 rounded-xl bg-brand px-4 font-medium text-white" type="submit">Save activity</button>
+              <button className="min-h-11 rounded-xl border border-line px-4" onClick={() => setQuickFormOpen(false)} type="button">Cancel</button>
+            </div>
+          </form>
+        ) : null}
 
         {formOpen ? (
           <form className="mt-5 grid gap-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-5" onSubmit={(event) => void saveWorkout(event)}>
@@ -517,9 +845,21 @@ export default function TrainPage() {
                       typeLabels[workout.type],
                       workout.durationMin !== null ? `${workout.durationMin} min` : null,
                       workout.distanceM ? formatDistance(workout.distanceM, day.profile.unitSystem) : null,
+                      workout.avgPaceSecPerKm !== null
+                        ? `${Math.floor(workout.avgPaceSecPerKm / 60)}:${String(workout.avgPaceSecPerKm % 60).padStart(2, "0")} / km`
+                        : null,
+                      workout.caloriesBurned !== null
+                        ? `${workout.caloriesEstimated ? "~" : ""}${workout.caloriesBurned} kcal`
+                        : null,
                       workout.sets.length ? `${workout.sets.length} sets` : null,
                     ].filter(Boolean).join(" · ")}
                   </p>
+                  {workout.elevationM ? (
+                    <p className="mt-1 text-xs text-muted">Elevation gain: {workout.elevationM} m</p>
+                  ) : null}
+                  {workout.routePoints?.length || workout.routePolyline ? (
+                    <RouteSummary workout={workout} />
+                  ) : null}
                   {workout.sets.length ? (
                     <p className="mt-1 text-xs text-muted">
                       {workout.sets[0].exerciseName ?? "Exercise"}
@@ -558,6 +898,22 @@ export default function TrainPage() {
   );
 }
 
+function RouteSummary({ workout }: { workout: WorkoutRecord }) {
+  const points =
+    workout.routePoints ??
+    (workout.routePolyline ? decodeEncodedPolyline(workout.routePolyline) : []);
+  if (!points.length && !workout.routePolyline) return null;
+  return (
+    <div className="mt-2 max-w-sm">
+      <RunRoutePreview
+        compact
+        label={`${workout.title ?? "Workout"} route preview`}
+        points={points}
+      />
+    </div>
+  );
+}
+
 function TrainingInput({
   label,
   onChange,
@@ -566,6 +922,7 @@ function TrainingInput({
 }: {
   label: string;
   onChange: (value: string) => void;
+  required?: boolean;
   type?: "number" | "text";
   value: string;
   min?: string;
@@ -578,6 +935,7 @@ function TrainingInput({
       <input
         className="min-h-12 rounded-xl border border-line bg-paper px-3"
         onChange={(event) => onChange(event.target.value)}
+        required={props.required}
         type={type}
         {...props}
       />

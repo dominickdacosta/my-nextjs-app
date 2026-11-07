@@ -7,6 +7,26 @@ import { useAppContext } from "@/components/app-shell";
 import type { DayFoodEntry, DayPayload } from "@/lib/health/day";
 import type { FoodSearchResult } from "@/lib/health/food-search";
 import { todayFor } from "@/lib/health/dates";
+import {
+  totalFoodNutrients,
+  type FoodParseResult,
+  type ParsedFoodIngredient,
+} from "@/lib/health/food-parser";
+
+type SavedMeal = {
+  id: string;
+  name: string;
+  items: Array<{
+    name: string;
+    servings: number;
+    kcal: number;
+    proteinG: number | null;
+    carbsG: number | null;
+    fatG: number | null;
+    fiberG: number | null;
+    nutritionSource: DayFoodEntry["nutritionSource"];
+  }>;
+};
 
 const meals = [
   { id: "breakfast", label: "Breakfast" },
@@ -19,6 +39,12 @@ async function fetchDay(url: string): Promise<DayPayload> {
   const response = await fetch(url);
   if (!response.ok) throw new Error("Could not load your food log.");
   return (await response.json()) as DayPayload;
+}
+
+async function fetchSavedMeals(url: string): Promise<SavedMeal[]> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Could not load your favorite meals.");
+  return (await response.json()) as SavedMeal[];
 }
 
 function dayKey(date: string | null): string {
@@ -37,6 +63,10 @@ export default function FoodLogPage() {
     dayKey(selectedDate),
     fetchDay,
   );
+  const { data: savedMeals, mutate: mutateSavedMeals } = useSWR<SavedMeal[]>(
+    "/api/saved-meals",
+    fetchSavedMeals,
+  );
   const [activeMeal, setActiveMeal] = useState<
     DayFoodEntry["meal"] | null
   >(null);
@@ -47,6 +77,16 @@ export default function FoodLogPage() {
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
   const [fiber, setFiber] = useState("");
+  const [nutritionSource, setNutritionSource] = useState<
+    DayFoodEntry["nutritionSource"]
+  >("manual");
+  const [entryNotes, setEntryNotes] = useState("");
+  const [foodDescription, setFoodDescription] = useState("");
+  const [parsedIngredients, setParsedIngredients] = useState<
+    ParsedFoodIngredient[] | null
+  >(null);
+  const [parsingFood, setParsingFood] = useState(false);
+  const [parseError, setParseError] = useState("");
   const [searchText, setSearchText] = useState("");
   const [searchResults, setSearchResults] = useState<FoodSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -54,6 +94,9 @@ export default function FoodLogPage() {
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
   const [deletedEntry, setDeletedEntry] = useState<DayFoodEntry | null>(null);
+  const [editingEntry, setEditingEntry] = useState<DayFoodEntry | null>(null);
+  const [savedMealCategory, setSavedMealCategory] =
+    useState<DayFoodEntry["meal"]>("snack");
 
   useEffect(() => {
     if (!deletedEntry) return;
@@ -145,6 +188,13 @@ export default function FoodLogPage() {
     setCarbs("");
     setFat("");
     setFiber("");
+    setNutritionSource("manual");
+    setEntryNotes("");
+    setFoodDescription("");
+    setParsedIngredients(null);
+    setParsingFood(false);
+    setParseError("");
+    setEditingEntry(null);
     setSearchText("");
     setSearchResults([]);
     setActiveMeal(null);
@@ -158,8 +208,123 @@ export default function FoodLogPage() {
     setCarbs(result.carbsG === null ? "" : String(result.carbsG));
     setFat(result.fatG === null ? "" : String(result.fatG));
     setFiber(result.fiberG === null ? "" : String(result.fiberG));
+    setNutritionSource(result.nutritionSource);
+    setEntryNotes("");
+    setParsedIngredients(null);
     setSearchText("");
     setSearchResults([]);
+  }
+
+  function editFood(entry: DayFoodEntry) {
+    setActiveMeal(entry.meal);
+    setEditingEntry(entry);
+    setName(entry.name);
+    setServings(String(entry.servings));
+    setCalories(String(entry.kcal));
+    setProtein(entry.proteinG === null ? "" : String(entry.proteinG));
+    setCarbs(entry.carbsG === null ? "" : String(entry.carbsG));
+    setFat(entry.fatG === null ? "" : String(entry.fatG));
+    setFiber(entry.fiberG === null ? "" : String(entry.fiberG));
+    setNutritionSource(entry.nutritionSource);
+    setEntryNotes(entry.notes ?? "");
+    setFoodDescription(entry.name);
+    setParsedIngredients(null);
+    setActionError("");
+  }
+
+  function applyParsedIngredients(ingredients: ParsedFoodIngredient[]) {
+    const totals = totalFoodNutrients(ingredients);
+    setParsedIngredients(ingredients);
+    setCalories(String(Math.round(totals.kcal)));
+    setProtein(String(Number(totals.proteinG.toFixed(1))));
+    setCarbs(String(Number(totals.carbsG.toFixed(1))));
+    setFat(String(Number(totals.fatG.toFixed(1))));
+    setFiber(String(Number(totals.fiberG.toFixed(1))));
+  }
+
+  async function estimateFood() {
+    setParseError("");
+    setParsingFood(true);
+    try {
+      const response = await fetch("/api/foods/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: foodDescription }),
+      });
+      const result = (await response.json()) as
+        | (FoodParseResult & { totals: ReturnType<typeof totalFoodNutrients> })
+        | { error?: string; unsupported?: string[] };
+      if (!response.ok) {
+        throw new Error(
+          "error" in result
+            ? result.error ?? "Could not estimate this meal."
+            : "Could not estimate this meal.",
+        );
+      }
+      if (!("totals" in result)) {
+        throw new Error("The estimate response was incomplete.");
+      }
+      setName(foodDescription.trim());
+      setServings("1");
+      setNutritionSource("estimated");
+      setEntryNotes(
+        `Estimated ingredients: ${result.ingredients
+          .map((ingredient) => `${ingredient.quantity} ${ingredient.unit} ${ingredient.name}`)
+          .join("; ")}${result.assumptions.length ? `. ${result.assumptions.join(" ")}` : ""}`,
+      );
+      applyParsedIngredients(result.ingredients);
+    } catch (error) {
+      setParseError(
+        error instanceof Error ? error.message : "Could not estimate this meal.",
+      );
+    } finally {
+      setParsingFood(false);
+    }
+  }
+
+  function adjustIngredient(index: number, quantity: number) {
+    if (!parsedIngredients || !Number.isFinite(quantity) || quantity <= 0) return;
+    const updated = parsedIngredients.map((ingredient, ingredientIndex) =>
+      ingredientIndex === index ? { ...ingredient, quantity } : ingredient,
+    );
+    applyParsedIngredients(updated);
+    setNutritionSource("estimated");
+    setEntryNotes(
+      `Estimated ingredients: ${updated
+        .map((ingredient) => `${ingredient.quantity} ${ingredient.unit} ${ingredient.name}`)
+        .join("; ")}`,
+    );
+  }
+
+  function removeIngredient(index: number) {
+    if (!parsedIngredients) return;
+    const updated = parsedIngredients.filter(
+      (_ingredient, ingredientIndex) => ingredientIndex !== index,
+    );
+    if (!updated.length) {
+      setParsedIngredients(null);
+      setNutritionSource("manual");
+      setEntryNotes("");
+      setCalories("");
+      setProtein("");
+      setCarbs("");
+      setFat("");
+      setFiber("");
+      return;
+    }
+    applyParsedIngredients(updated);
+    setEntryNotes(
+      `Estimated ingredients: ${updated
+        .map((ingredient) => `${ingredient.quantity} ${ingredient.unit} ${ingredient.name}`)
+        .join("; ")}`,
+    );
+  }
+
+  function editNutrition(setter: (value: string) => void, value: string) {
+    setter(value);
+    setNutritionSource("manual");
+    setParsedIngredients(null);
+    setEntryNotes("");
   }
 
   async function addFood(event: FormEvent<HTMLFormElement>) {
@@ -170,8 +335,12 @@ export default function FoodLogPage() {
     const numberOrNull = (value: string) =>
       value.trim() ? Number(value) : null;
     try {
-      const response = await fetch("/api/food-entries", {
-        method: "POST",
+      const response = await fetch(
+        editingEntry
+          ? `/api/food-entries/${encodeURIComponent(editingEntry.id)}`
+          : "/api/food-entries",
+        {
+        method: editingEntry ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           loggedOn: day.date,
@@ -183,14 +352,17 @@ export default function FoodLogPage() {
           carbsG: numberOrNull(carbs),
           fatG: numberOrNull(fat),
           fiberG: numberOrNull(fiber),
+          nutritionSource,
+          notes: entryNotes || null,
         }),
-      });
+        },
+      );
       if (!response.ok) {
         const result = (await response.json()) as { error?: string };
         throw new Error(result.error ?? "Could not save this food entry.");
       }
       clearForm();
-      setNotice("Food entry saved.");
+      setNotice(editingEntry ? "Food entry updated." : "Food entry saved.");
       try {
         await mutate();
       } catch {
@@ -233,6 +405,116 @@ export default function FoodLogPage() {
         deleteError instanceof Error
           ? deleteError.message
           : "Could not delete this food entry.",
+      );
+    }
+  }
+
+  async function repeatFood(entry: DayFoodEntry) {
+    setActionError("");
+    try {
+      const response = await fetch("/api/food-entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loggedOn: day.date,
+          meal: entry.meal,
+          name: entry.name,
+          servings: entry.servings,
+          kcal: entry.kcal,
+          proteinG: entry.proteinG,
+          carbsG: entry.carbsG,
+          fatG: entry.fatG,
+          fiberG: entry.fiberG,
+          nutritionSource: entry.nutritionSource,
+          notes: entry.notes,
+        }),
+      });
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        throw new Error(result.error ?? "Could not repeat this food entry.");
+      }
+      await mutate();
+    } catch (repeatError) {
+      setActionError(
+        repeatError instanceof Error
+          ? repeatError.message
+          : "Could not repeat this food entry.",
+      );
+    }
+  }
+
+  async function saveFavorite(meal: (typeof meals)[number], entries: DayFoodEntry[]) {
+    setActionError("");
+    try {
+      const response = await fetch("/api/saved-meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${meal.label} favorite`,
+          items: entries.map((entry) => ({
+            name: entry.name,
+            servings: entry.servings,
+            kcal: entry.kcal,
+            proteinG: entry.proteinG,
+            carbsG: entry.carbsG,
+            fatG: entry.fatG,
+            fiberG: entry.fiberG,
+            nutritionSource: entry.nutritionSource,
+          })),
+        }),
+      });
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        throw new Error(result.error ?? "Could not save this favorite meal.");
+      }
+      await mutateSavedMeals();
+      setNotice("Favorite meal saved.");
+    } catch (saveError) {
+      setActionError(
+        saveError instanceof Error ? saveError.message : "Could not save this favorite meal.",
+      );
+    }
+  }
+
+  async function logFavorite(savedMeal: SavedMeal) {
+    setActionError("");
+    try {
+      const response = await fetch(
+        `/api/saved-meals/${encodeURIComponent(savedMeal.id)}/log`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ loggedOn: day.date, meal: savedMealCategory }),
+        },
+      );
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        throw new Error(result.error ?? "Could not add this favorite meal.");
+      }
+      await mutate();
+      setNotice(`${savedMeal.name} added to ${savedMealCategory}.`);
+    } catch (logError) {
+      setActionError(
+        logError instanceof Error ? logError.message : "Could not add this favorite meal.",
+      );
+    }
+  }
+
+  async function deleteFavorite(savedMeal: SavedMeal) {
+    setActionError("");
+    try {
+      const response = await fetch(
+        `/api/saved-meals/${encodeURIComponent(savedMeal.id)}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        throw new Error(result.error ?? "Could not remove this favorite.");
+      }
+      await mutateSavedMeals();
+    } catch (deleteError) {
+      setActionError(
+        deleteError instanceof Error ? deleteError.message : "Could not remove this favorite.",
       );
     }
   }
@@ -311,6 +593,41 @@ export default function FoodLogPage() {
         </p>
       ) : null}
 
+      {savedMeals?.length ? (
+        <section aria-label="Favorite meals" className="mt-5 rounded-3xl border border-line bg-card p-5 sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold">Favorite meals</h2>
+              <p className="mt-1 text-sm text-muted">Repeat a saved meal with one tap.</p>
+            </div>
+            <label className="grid gap-1 text-sm font-medium">
+              Add to
+              <select
+                className="min-h-11 rounded-xl border border-line bg-paper px-3"
+                onChange={(event) => setSavedMealCategory(event.target.value as DayFoodEntry["meal"])}
+                value={savedMealCategory}
+              >
+                {meals.map((meal) => <option key={meal.id} value={meal.id}>{meal.label}</option>)}
+              </select>
+            </label>
+          </div>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {savedMeals.map((savedMeal) => (
+              <li className="flex items-center justify-between gap-3 rounded-xl bg-paper p-3" key={savedMeal.id}>
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{savedMeal.name}</p>
+                  <p className="text-xs text-muted">{savedMeal.items.length} {savedMeal.items.length === 1 ? "item" : "items"}</p>
+                </div>
+                <div className="flex shrink-0">
+                  <button className="min-h-11 rounded-lg px-3 text-sm text-brand underline" onClick={() => void logFavorite(savedMeal)} type="button">Add</button>
+                  <button aria-label={`Remove ${savedMeal.name} from favorites`} className="min-h-11 rounded-lg px-3 text-sm text-muted underline" onClick={() => void deleteFavorite(savedMeal)} type="button">Remove</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {activeMeal ? (
         <form
           className="mt-6 grid gap-4 rounded-3xl border border-line bg-card p-5 sm:grid-cols-2 sm:p-7"
@@ -318,10 +635,76 @@ export default function FoodLogPage() {
         >
           <div className="sm:col-span-2">
             <h2 className="text-xl font-semibold">
-              Add to {meals.find((meal) => meal.id === activeMeal)?.label}
+              {editingEntry ? "Edit" : "Add to"} {meals.find((meal) => meal.id === activeMeal)?.label}
             </h2>
             <p className="mt-1 text-sm text-muted">Nutrition values are per serving.</p>
           </div>
+          <div className="grid gap-3 sm:col-span-2">
+            <label className="grid gap-2 text-sm font-medium" htmlFor="food-description">
+              What did you eat?
+              <textarea
+                className="min-h-24 rounded-xl border border-line bg-paper px-3 py-3 text-base"
+                id="food-description"
+                maxLength={300}
+                onChange={(event) => {
+                  setFoodDescription(event.target.value);
+                  setParseError("");
+                }}
+                placeholder="For example: 2 chapatis and one bowl of dal"
+                value={foodDescription}
+              />
+            </label>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                className="min-h-11 rounded-xl bg-brand px-4 font-medium text-white disabled:opacity-60"
+                disabled={parsingFood || foodDescription.trim().length < 2}
+                onClick={() => void estimateFood()}
+                type="button"
+              >
+                {parsingFood ? "Estimating..." : "Estimate nutrition"}
+              </button>
+              <p className="text-sm text-muted">
+                Local estimates only; review and adjust before saving.
+              </p>
+            </div>
+            {parseError ? <p className="text-sm text-red-700" role="alert">{parseError}</p> : null}
+            {parsedIngredients ? (
+              <div className="rounded-2xl border border-line bg-paper p-4">
+                <p className="font-medium">Estimated ingredients</p>
+                <ul className="mt-2 grid gap-2">
+                  {parsedIngredients.map((ingredient, index) => (
+                    <li className="flex flex-wrap items-center gap-2" key={`${ingredient.name}-${index}`}>
+                      <label className="flex min-h-11 items-center gap-2 text-sm">
+                        <span>{ingredient.name}</span>
+                        <input
+                          aria-label={`Quantity of ${ingredient.name}`}
+                          className="min-h-11 w-24 rounded-lg border border-line bg-card px-2"
+                          min="0.1"
+                          onChange={(event) => adjustIngredient(index, Number(event.target.value))}
+                          step="0.1"
+                          type="number"
+                          value={ingredient.quantity}
+                        />
+                        <span className="text-muted">{ingredient.unit}</span>
+                      </label>
+                      <button
+                        aria-label={`Remove ${ingredient.name}`}
+                        className="min-h-11 rounded-lg px-3 text-sm text-muted underline"
+                        onClick={() => removeIngredient(index)}
+                        type="button"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+          <details className="grid gap-4 rounded-2xl border border-line p-4 sm:col-span-2">
+            <summary className="min-h-11 cursor-pointer py-2 font-medium">
+              Search a food or enter nutrition manually
+            </summary>
           <div className="grid gap-2 sm:col-span-2">
             <label className="text-sm font-medium" htmlFor="food-search">
               Search your recent foods and FoodData Central
@@ -364,18 +747,26 @@ export default function FoodLogPage() {
               </ul>
             ) : null}
           </div>
-          <FoodInput label="Food name" onChange={setName} required value={name} />
+          <FoodInput label="Food name" onChange={(value) => editNutrition(setName, value)} required value={name} />
           <FoodInput label="Servings" min="0.1" onChange={setServings} required step="0.1" type="number" value={servings} />
           {!day.profile.hideCalories ? (
-            <FoodInput label="Calories (kcal)" min="0" onChange={setCalories} step="1" type="number" value={calories} />
+            <FoodInput label="Calories (kcal)" min="0" onChange={(value) => editNutrition(setCalories, value)} step="1" type="number" value={calories} />
           ) : null}
-          <FoodInput label="Protein (g)" min="0" onChange={setProtein} step="0.1" type="number" value={protein} />
-          <FoodInput label="Carbohydrates (g)" min="0" onChange={setCarbs} step="0.1" type="number" value={carbs} />
-          <FoodInput label="Fat (g)" min="0" onChange={setFat} step="0.1" type="number" value={fat} />
-          <FoodInput label="Fiber (g)" min="0" onChange={setFiber} step="0.1" type="number" value={fiber} />
+          <FoodInput label="Protein (g)" min="0" onChange={(value) => editNutrition(setProtein, value)} step="0.1" type="number" value={protein} />
+          <FoodInput label="Carbohydrates (g)" min="0" onChange={(value) => editNutrition(setCarbs, value)} step="0.1" type="number" value={carbs} />
+          <FoodInput label="Fat (g)" min="0" onChange={(value) => editNutrition(setFat, value)} step="0.1" type="number" value={fat} />
+          <FoodInput label="Fiber (g)" min="0" onChange={(value) => editNutrition(setFiber, value)} step="0.1" type="number" value={fiber} />
+          </details>
+          {parsedIngredients ? (
+            <p className="text-sm text-muted sm:col-span-2">
+              Estimate from a built-in food reference. Portions and preparation vary; this is not verified label data.
+            </p>
+          ) : nutritionSource === "verified" ? (
+            <p className="text-sm text-muted sm:col-span-2">Values selected from FoodData Central.</p>
+          ) : null}
           <div className="flex items-center gap-3 sm:col-span-2">
             <button className="min-h-12 rounded-xl bg-brand px-5 font-semibold text-white" type="submit">
-              Save food
+              {editingEntry ? "Save changes" : "Save food"}
             </button>
             <button className="min-h-12 rounded-xl border border-line px-5" onClick={clearForm} type="button">
               Cancel
@@ -415,6 +806,15 @@ export default function FoodLogPage() {
                 >
                   Add food
                 </button>
+                {entries.length ? (
+                  <button
+                    className="min-h-11 rounded-xl border border-line px-3 text-sm font-medium"
+                    onClick={() => void saveFavorite(meal, entries)}
+                    type="button"
+                  >
+                    Save favorite
+                  </button>
+                ) : null}
               </header>
               {entries.length ? (
                 <ul className="mt-4 divide-y divide-line">
@@ -426,15 +826,40 @@ export default function FoodLogPage() {
                           {formatAmount(entry.servings)} {entry.servings === 1 ? "serving" : "servings"}
                           {!day.profile.hideCalories ? ` · ${formatAmount(entry.kcal * entry.servings)} kcal` : ""}
                         </p>
+                        <p className="mt-1 text-xs text-muted">
+                          {entry.nutritionSource === "verified"
+                            ? "FoodData Central"
+                            : entry.nutritionSource === "estimated"
+                              ? "Estimated nutrition"
+                              : "Manually entered"}
+                        </p>
                       </div>
-                      <button
-                        aria-label={`Delete ${entry.name}`}
-                        className="min-h-11 shrink-0 rounded-lg px-3 text-sm text-muted underline"
-                        onClick={() => void deleteFood(entry)}
-                        type="button"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex shrink-0 flex-wrap justify-end">
+                        <button
+                          aria-label={`Edit ${entry.name}`}
+                          className="min-h-11 rounded-lg px-3 text-sm text-brand underline"
+                          onClick={() => editFood(entry)}
+                          type="button"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          aria-label={`Repeat ${entry.name}`}
+                          className="min-h-11 rounded-lg px-3 text-sm text-brand underline"
+                          onClick={() => void repeatFood(entry)}
+                          type="button"
+                        >
+                          Repeat
+                        </button>
+                        <button
+                          aria-label={`Delete ${entry.name}`}
+                          className="min-h-11 rounded-lg px-3 text-sm text-muted underline"
+                          onClick={() => void deleteFood(entry)}
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>

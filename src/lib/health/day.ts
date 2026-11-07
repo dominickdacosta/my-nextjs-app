@@ -42,6 +42,7 @@ export type DayFoodEntry = {
   carbsG: number | null;
   fatG: number | null;
   fiberG: number | null;
+  nutritionSource: "estimated" | "verified" | "manual";
   notes: string | null;
 };
 

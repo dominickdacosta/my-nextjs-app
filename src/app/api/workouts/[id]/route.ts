@@ -51,7 +51,7 @@ async function restoreWorkout(request: Request, userId: string) {
   const result = workoutRestoreSchema.safeParse(parsedBody.body);
   if (!result.success) return invalidInput(result.error.issues);
 
-  const { loggedAt, sets, ...workoutValues } = result.data;
+  const { loggedAt, startedAt, sets, ...workoutValues } = result.data;
   const exerciseIds = sets.flatMap((set) => set.exerciseId ? [set.exerciseId] : []);
   const accessibleIds = await accessibleExerciseIds(exerciseIds, userId);
   if (accessibleIds.length !== new Set(exerciseIds).size) {
@@ -63,6 +63,7 @@ async function restoreWorkout(request: Request, userId: string) {
     .insert(workouts)
     .values({
       ...workoutValues,
+      startedAt: startedAt ? new Date(startedAt) : null,
       id,
       loggedAt: new Date(loggedAt),
       userId,

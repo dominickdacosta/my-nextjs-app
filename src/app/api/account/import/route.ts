@@ -29,12 +29,16 @@ import {
 } from "@/lib/db/schema";
 import { profileUpdateSchema } from "@/lib/validation/profile";
 
-const valueSchema = z.union([
+const primitiveValueSchema = z.union([
   z.string().max(10_000),
   z.number().finite(),
   z.boolean(),
   z.null(),
-  z.array(z.union([z.string().max(10_000), z.number().finite(), z.boolean(), z.null()])).max(2_000),
+]);
+const objectValueSchema = z.record(z.string().max(64), primitiveValueSchema);
+const valueSchema = z.union([
+  primitiveValueSchema,
+  z.array(z.union([primitiveValueSchema, objectValueSchema])).max(2_500),
 ]);
 const rowSchema = z.record(z.string().max(64), valueSchema);
 const backupSchema = z.object({
@@ -79,12 +83,12 @@ const allowedFields: Record<keyof BackupData, ReadonlySet<string>> = {
   ]),
   goals: new Set(["id", "userId", "effectiveFrom", "caloriesKcal", "proteinG", "carbsG", "fatG", "fiberG", "waterMl", "steps", "activeMinutes", "sleepMinutes", "workoutsPerWeek", "createdAt", "updatedAt"]),
   foods: new Set(["id", "userId", "source", "externalId", "barcode", "name", "brand", "servingSize", "servingUnit", "gramsPerServing", "kcal", "proteinG", "carbsG", "fatG", "fiberG", "sugarG", "sodiumMg", "createdAt", "updatedAt"]),
-  foodEntries: new Set(["id", "userId", "loggedOn", "loggedAt", "meal", "foodId", "name", "servings", "kcal", "proteinG", "carbsG", "fatG", "fiberG", "sugarG", "sodiumMg", "notes", "createdAt", "updatedAt"]),
+  foodEntries: new Set(["id", "userId", "loggedOn", "loggedAt", "meal", "foodId", "name", "servings", "kcal", "proteinG", "carbsG", "fatG", "fiberG", "nutritionSource", "sugarG", "sodiumMg", "notes", "createdAt", "updatedAt"]),
   favoriteFoods: new Set(["id", "userId", "foodId", "createdAt", "updatedAt"]),
   savedMeals: new Set(["id", "userId", "name", "createdAt", "updatedAt"]),
-  savedMealItems: new Set(["id", "userId", "savedMealId", "foodId", "name", "servings", "kcal", "proteinG", "carbsG", "fatG", "fiberG", "sugarG", "sodiumMg", "createdAt", "updatedAt"]),
+  savedMealItems: new Set(["id", "userId", "savedMealId", "foodId", "name", "servings", "kcal", "proteinG", "carbsG", "fatG", "fiberG", "nutritionSource", "sugarG", "sodiumMg", "createdAt", "updatedAt"]),
   waterEntries: new Set(["id", "userId", "loggedOn", "loggedAt", "amountMl", "createdAt", "updatedAt"]),
-  workouts: new Set(["id", "userId", "loggedOn", "loggedAt", "type", "title", "startedAt", "durationMin", "distanceM", "steps", "avgHeartRate", "caloriesBurned", "caloriesEstimated", "perceivedEffort", "notes", "templateId", "source", "createdAt", "updatedAt"]),
+  workouts: new Set(["id", "userId", "loggedOn", "loggedAt", "type", "title", "startedAt", "durationMin", "durationSeconds", "distanceM", "steps", "avgHeartRate", "caloriesBurned", "caloriesEstimated", "avgPaceSecPerKm", "elevationM", "routePoints", "routePolyline", "externalActivityId", "perceivedEffort", "notes", "templateId", "source", "createdAt", "updatedAt"]),
   workoutSets: new Set(["id", "userId", "workoutId", "exerciseId", "orderIndex", "setNumber", "reps", "weightKg", "durationS", "distanceM", "rpe", "isWarmup", "completed", "createdAt", "updatedAt"]),
   exercises: new Set(["id", "userId", "name", "category", "primaryMuscle", "equipment", "metValue", "tracks", "createdAt", "updatedAt"]),
   workoutTemplates: new Set(["id", "userId", "name", "notes", "createdAt", "updatedAt"]),

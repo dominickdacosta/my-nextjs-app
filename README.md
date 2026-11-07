@@ -47,9 +47,57 @@ npm run db:migrate
 npm run db:seed
 ```
 
+Database migrations use the standard PostgreSQL `pg` driver. Set `DATABASE_URL`
+to the connection string for the exact Vercel environment/database you intend
+to initialize before running `npm run db:migrate`.
+
 Food logging supports manual entries and recent-food search by default. Set
 `FDC_API_KEY` to enable USDA FoodData Central search; the key is used only by
-the server-side search route.
+the server-side search route. Natural-language meal estimates use a built-in
+reference for common foods and Indian dishes; they are approximate, clearly
+labelled, and do not require an AI service or API key. Unsupported foods are
+not assigned invented nutrition values. You can search FoodData Central,
+correct values, edit saved entries, repeat recent meals, or save favorites.
+
+## Running and Strava
+
+The Train page supports quick activity logs, reusable strength templates,
+repeating the last strength workout, and GPS run recording. GPS uses the
+browser's high-accuracy Geolocation API, filters inaccurate or implausible
+fixes, and renders a private route preview without sending location to a map
+tile provider. GPS is collected only while the page is active and is saved
+when the run is finished. Mobile browsers may pause location updates when the
+page is backgrounded or the screen locks; continuous background tracking is
+not guaranteed.
+
+Strava is optional. To enable it, create an application in the Strava API
+settings and configure these server-side environment variables for each
+deployment:
+
+- `STRAVA_CLIENT_ID`
+- `STRAVA_CLIENT_SECRET`
+- `STRAVA_REDIRECT_URI` — the exact callback URL registered with Strava, such
+  as `https://<your-domain>/api/strava/callback`
+- `STRAVA_TOKEN_ENCRYPTION_KEY` — a base64-encoded, randomly generated
+  32-byte key used to encrypt access and refresh tokens at rest. Generate one
+  with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"`
+  and keep it stable and secret; changing or losing it requires reconnecting
+  Strava accounts.
+
+For local development, register and use
+`http://localhost:3000/api/strava/callback`. The integration requests read
+access to activities, refreshes expired tokens, imports up to 1,000 activities
+per sync request with older history continued on subsequent syncs, and prevents
+duplicate imports by Strava activity ID. Imported records include available
+distance, duration, pace, elevation, heart-rate summary, and route summary.
+Users can disconnect at any time; disconnecting removes stored tokens but
+keeps already imported workouts. No integration is offered until valid
+credentials and the encryption key are configured.
+
+The Trends dashboard summarizes nutrition and protein-goal consistency,
+workout frequency and active time, running distance and pace records, strength
+progression, body measurements, sleep, and available vital measurements.
+Comparisons use equal-length adjacent periods.
 
 ## Reminders and privacy
 

@@ -11,6 +11,7 @@ export const foodEntrySchema = z.object({
   carbsG: z.number().min(0).max(1500).nullable().optional(),
   fatG: z.number().min(0).max(1000).nullable().optional(),
   fiberG: z.number().min(0).max(300).nullable().optional(),
+  nutritionSource: z.enum(["estimated", "verified", "manual"]).default("manual"),
   sugarG: z.number().min(0).max(1000).nullable().optional(),
   sodiumMg: z.number().min(0).max(100000).nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
