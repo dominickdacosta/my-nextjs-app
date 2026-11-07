@@ -5,6 +5,7 @@ import {
   calculateTdee,
   calorieFloor,
   defaultMacros,
+  estimateCaloriesFromSteps,
   isBelowCalorieFloor,
   suggestTargets,
 } from "./energy";
@@ -43,6 +44,13 @@ describe("energy estimates", () => {
     expect(isBelowCalorieFloor(1200, "female")).toBe(false);
     expect(isBelowCalorieFloor(1499, "male")).toBe(true);
     expect(() => calculateTdee(0, "moderate")).toThrow(RangeError);
+  });
+
+  it("estimates calories from steps without implying precision", () => {
+    expect(estimateCaloriesFromSteps(0)).toBe(0);
+    expect(estimateCaloriesFromSteps(10_000)).toBe(400);
+    expect(() => estimateCaloriesFromSteps(-1)).toThrow(RangeError);
+    expect(() => estimateCaloriesFromSteps(1.5)).toThrow(RangeError);
   });
 
   it("returns no targets for incomplete profiles and clamps low targets", () => {

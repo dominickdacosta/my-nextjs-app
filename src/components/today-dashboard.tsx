@@ -6,16 +6,10 @@ import useSWR from "swr";
 import { useAppContext } from "@/components/app-shell";
 import type { DayPayload, DayWaterEntry } from "@/lib/health/day";
 import { addDays, todayFor } from "@/lib/health/dates";
+import { estimateCaloriesFromSteps } from "@/lib/health/energy";
 import { flOzToMl, formatVolume, formatWeight } from "@/lib/health/units";
 
 const meals = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
-const moodOptions = [
-  { value: 1, icon: "😞", label: "Very low" },
-  { value: 2, icon: "🙁", label: "A little low" },
-  { value: 3, icon: "😐", label: "Okay" },
-  { value: 4, icon: "🙂", label: "Good" },
-  { value: 5, icon: "😄", label: "Great" },
-];
 const energyOptions = [
   { value: 1, icon: "🪫", label: "Very low" },
   { value: 2, icon: "😴", label: "Low" },
@@ -93,6 +87,8 @@ export default function TodayDashboard() {
     }),
     { kcal: 0, proteinG: 0 },
   );
+  const syncedSteps =
+    data.activity?.source === "health-connect" ? data.activity.steps : null;
   const weight = data.weight?.weightKg;
   const dateLabel = new Intl.DateTimeFormat(undefined, {
     weekday: "long",
@@ -114,11 +110,11 @@ export default function TodayDashboard() {
     runLog({ kind: "water", amountMl, loggedOn: day.date });
   }
 
-  function logRating(kind: "mood" | "energy", value: number) {
+  function logEnergy(value: number) {
     runLog({
       kind: "checkin",
       loggedOn: day.date,
-      [kind]: value,
+      energy: value,
     });
   }
 
@@ -276,9 +272,9 @@ export default function TodayDashboard() {
         />
         <MetricCard
           title="Steps"
-          value={data.activity?.source === "health-connect" ? data.activity.steps.toLocaleString() : "—"}
+          value={syncedSteps?.toLocaleString() ?? "—"}
           detail={
-            data.activity?.source === "health-connect"
+            syncedSteps !== null
               ? data.goals
                 ? `Goal ${data.goals.steps.toLocaleString()}`
                 : "From Google Health Connect"
@@ -286,9 +282,21 @@ export default function TodayDashboard() {
           }
         />
         <MetricCard
-          title="Active minutes"
-          value={data.activity ? `${data.activity.activeMinutes} min` : "—"}
-          detail={data.goals ? `Goal ${data.goals.activeMinutes} min` : "Movement adds up"}
+          title="Calories burned from steps"
+          value={
+              syncedSteps !== null
+                ? data.profile.hideCalories
+                  ? "Hidden"
+                  : `~${estimateCaloriesFromSteps(syncedSteps)} kcal`
+                : "—"
+          }
+          detail={
+              syncedSteps === null
+                ? "Sync steps from Health Connect"
+                : data.profile.hideCalories
+                  ? "Hidden in calorie settings"
+                  : `Approximate estimate from ${syncedSteps.toLocaleString()} steps`
+          }
         />
         <MetricCard
           title="Sleep"
@@ -467,20 +475,14 @@ export default function TodayDashboard() {
         <article className="rounded-3xl border border-line bg-card p-5 sm:p-7">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted">Wellbeing</p>
-              <h2 className="mt-1 text-2xl font-semibold">How are you feeling?</h2>
+              <p className="text-sm font-medium text-muted">Daily check-in</p>
+              <h2 className="mt-1 text-2xl font-semibold">Energy</h2>
             </div>
-            <span aria-hidden="true" className="text-3xl">🌿</span>
+            <span aria-hidden="true" className="text-3xl">⚡</span>
           </div>
           <RatingRow
-            label="Mood"
-            onSelect={(value) => logRating("mood", value)}
-            options={moodOptions}
-            selected={data.checkin?.mood ?? null}
-          />
-          <RatingRow
             label="Energy"
-            onSelect={(value) => logRating("energy", value)}
+            onSelect={logEnergy}
             options={energyOptions}
             selected={data.checkin?.energy ?? null}
           />
@@ -628,7 +630,7 @@ function RatingRow({
   onSelect,
 }: {
   label: string;
-  options: typeof moodOptions;
+  options: typeof energyOptions;
   selected: number | null;
   onSelect: (value: number) => void;
 }) {

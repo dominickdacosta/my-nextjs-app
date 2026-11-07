@@ -17,7 +17,6 @@ export type TrendDay = {
   avgRunPaceSecPerKm: number | null;
   sleepMinutes: number | null;
   steps: number;
-  mood: number | null;
   energy: number | null;
   vitalCount: number;
   hasFoodLog: boolean;
@@ -58,7 +57,6 @@ export type TrendRows = {
   }>;
   checkins: Array<{
     loggedOn: string;
-    mood: number | null;
     energy: number | null;
   }>;
   vitals: Array<{ loggedOn: string }>;
@@ -87,7 +85,6 @@ export function aggregateTrendDays(rows: TrendRows): TrendDay[] {
         avgRunPaceSecPerKm: null,
         sleepMinutes: null,
         steps: 0,
-        mood: null,
         energy: null,
         vitalCount: 0,
         hasFoodLog: false,
@@ -151,7 +148,6 @@ export function aggregateTrendDays(rows: TrendRows): TrendDay[] {
   for (const entry of rows.checkins) {
     const day = days.get(entry.loggedOn);
     if (!day) continue;
-    day.mood = entry.mood;
     day.energy = entry.energy;
     day.hasLog = true;
   }

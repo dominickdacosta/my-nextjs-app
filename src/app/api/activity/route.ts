@@ -1,10 +1,9 @@
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { invalidInput, readJson, withUser } from "@/lib/api";
+import { withUser } from "@/lib/api";
 import { getDb } from "@/lib/db/client";
 import { dailyActivity, profiles } from "@/lib/db/schema";
 import { isDateString, todayFor } from "@/lib/health/dates";
-import { activitySchema } from "@/lib/validation/activity";
 
 async function getActivity(request: Request, userId: string) {
   const dateParam = new URL(request.url).searchParams.get("date");
@@ -29,28 +28,4 @@ async function getActivity(request: Request, userId: string) {
   return NextResponse.json(activity ?? null);
 }
 
-async function saveActivity(request: Request, userId: string) {
-  const parsedBody = await readJson(request);
-  if (parsedBody.response) return parsedBody.response;
-  const result = activitySchema.safeParse(parsedBody.body);
-  if (!result.success) return invalidInput(result.error.issues);
-  const db = getDb();
-  const now = new Date();
-  const [activity] = await db
-    .insert(dailyActivity)
-    .values({ ...result.data, userId, loggedAt: now })
-    .onConflictDoUpdate({
-      target: [dailyActivity.userId, dailyActivity.loggedOn],
-      set: {
-        activeMinutes: result.data.activeMinutes,
-        distanceM: result.data.distanceM,
-        loggedAt: now,
-        updatedAt: now,
-      },
-    })
-    .returning();
-  return NextResponse.json(activity);
-}
-
 export const GET = withUser(getActivity);
-export const POST = withUser(saveActivity);

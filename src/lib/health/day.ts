@@ -24,7 +24,6 @@ export type DayCheckin = {
   id: string;
   loggedOn: string;
   loggedAt?: string;
-  mood: number | null;
   energy: number | null;
   stress?: number | null;
   soreness?: number | null;
@@ -119,7 +118,6 @@ export type QuickLogInput =
   | {
       kind: "checkin";
       loggedOn: string;
-      mood?: number;
       energy?: number;
     };
 
@@ -164,14 +162,12 @@ export function updateDayOptimistically(
   const checkin = day.checkin ?? {
     id,
     loggedOn: input.loggedOn,
-    mood: null,
     energy: null,
   };
   return {
     ...day,
     checkin: {
       ...checkin,
-      mood: input.mood ?? checkin.mood,
       energy: input.energy ?? checkin.energy,
     },
   };

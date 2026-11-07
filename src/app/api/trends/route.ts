@@ -152,7 +152,6 @@ async function getTrends(request: Request, userId: string) {
     db
       .select({
         loggedOn: dailyCheckins.loggedOn,
-        mood: dailyCheckins.mood,
         energy: dailyCheckins.energy,
       })
       .from(dailyCheckins)

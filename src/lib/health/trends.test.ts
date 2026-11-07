@@ -30,7 +30,7 @@ describe("health trends", () => {
         activeMinutes: 10,
         source: "health-connect",
       }],
-      checkins: [{ loggedOn: "2026-03-15", mood: 4, energy: 3 }],
+      checkins: [{ loggedOn: "2026-03-15", energy: 3 }],
       vitals: [],
     });
 
@@ -49,7 +49,6 @@ describe("health trends", () => {
       avgRunPaceSecPerKm: 360,
       sleepMinutes: 420,
       steps: 4000,
-      mood: 4,
       energy: 3,
       hasLog: true,
     });
