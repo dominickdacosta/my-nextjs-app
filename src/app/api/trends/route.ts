@@ -139,6 +139,7 @@ async function getTrends(request: Request, userId: string) {
         loggedOn: dailyActivity.loggedOn,
         steps: dailyActivity.steps,
         activeMinutes: dailyActivity.activeMinutes,
+        source: dailyActivity.source,
       })
       .from(dailyActivity)
       .where(

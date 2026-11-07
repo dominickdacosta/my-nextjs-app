@@ -276,8 +276,14 @@ export default function TodayDashboard() {
         />
         <MetricCard
           title="Steps"
-          value={data.activity ? data.activity.steps.toLocaleString() : "—"}
-          detail={data.goals ? `Goal ${data.goals.steps.toLocaleString()}` : "Daily steps"}
+          value={data.activity?.source === "health-connect" ? data.activity.steps.toLocaleString() : "—"}
+          detail={
+            data.activity?.source === "health-connect"
+              ? data.goals
+                ? `Goal ${data.goals.steps.toLocaleString()}`
+                : "From Google Health Connect"
+              : "Sync from Health Connect"
+          }
         />
         <MetricCard
           title="Active minutes"

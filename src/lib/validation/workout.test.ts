@@ -25,6 +25,17 @@ describe("workoutSchema", () => {
     ).toBe(false);
   });
 
+  it("does not accept manual step counts", () => {
+    const result = workoutSchema.safeParse({
+      loggedOn: "2026-03-16",
+      type: "walk",
+      steps: 5000,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).not.toHaveProperty("steps");
+  });
+
   it("rejects malformed dates and too many sets", () => {
     expect(
       workoutSchema.safeParse({

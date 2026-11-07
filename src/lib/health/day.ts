@@ -94,7 +94,12 @@ export type DayPayload = {
   measurements: DayMeasurement[];
   weight: DayMeasurement | null;
   checkin: DayCheckin | null;
-  activity: { steps: number; activeMinutes: number; distanceM: number } | null;
+  activity: {
+    steps: number;
+    activeMinutes: number;
+    distanceM: number;
+    source: string | null;
+  } | null;
   vitals: DayVital[];
   food: DayFoodEntry[];
   workouts: DayWorkout[];

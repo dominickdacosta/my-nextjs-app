@@ -104,7 +104,6 @@ export default function TrainPage() {
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState("");
   const [distance, setDistance] = useState("");
-  const [steps, setSteps] = useState("");
   const [heartRate, setHeartRate] = useState("");
   const [calories, setCalories] = useState("");
   const [effort, setEffort] = useState("");
@@ -208,7 +207,6 @@ export default function TrainPage() {
     setTitle("");
     setDuration("");
     setDistance("");
-    setSteps("");
     setHeartRate("");
     setCalories("");
     setEffort("");
@@ -254,7 +252,6 @@ export default function TrainPage() {
       title: title.trim() || null,
       durationMin: optionalNumber(duration),
       distanceM,
-      steps: optionalNumber(steps),
       avgHeartRate: optionalNumber(heartRate),
       caloriesBurned: optionalNumber(calories),
       caloriesEstimated: false,
@@ -763,7 +760,6 @@ export default function TrainPage() {
               type="number"
               value={distance}
             />
-            <TrainingInput label="Steps (optional)" min="0" onChange={setSteps} step="1" type="number" value={steps} />
             <TrainingInput label="Average heart rate (bpm)" min="30" max="250" onChange={setHeartRate} step="1" type="number" value={heartRate} />
             <TrainingInput label="Calories burned (optional)" min="0" onChange={setCalories} step="1" type="number" value={calories} />
             <label className="grid gap-2 text-sm font-medium">
