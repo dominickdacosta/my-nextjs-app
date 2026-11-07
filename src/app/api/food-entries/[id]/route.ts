@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { invalidInput, readJson, withUser } from "@/lib/api";
 import { getDb } from "@/lib/db/client";
 import { foodEntries } from "@/lib/db/schema";
-import { foodRestoreSchema } from "@/lib/validation/food-entry";
+import { foodEntrySchema, foodRestoreSchema } from "@/lib/validation/food-entry";
 
 function entryId(request: Request): string | null {
   const id = new URL(request.url).pathname.split("/").at(-1);
@@ -19,6 +19,27 @@ async function deleteFood(request: Request, userId: string) {
   }
   const [entry] = await getDb()
     .delete(foodEntries)
+    .where(and(eq(foodEntries.id, id), eq(foodEntries.userId, userId)))
+    .returning();
+  if (!entry) {
+    return NextResponse.json({ error: "Entry not found." }, { status: 404 });
+  }
+  return NextResponse.json(entry);
+}
+
+async function updateFood(request: Request, userId: string) {
+  const id = entryId(request);
+  if (!id) {
+    return NextResponse.json({ error: "Invalid entry ID." }, { status: 400 });
+  }
+  const parsedBody = await readJson(request);
+  if (parsedBody.response) return parsedBody.response;
+  const result = foodEntrySchema.safeParse(parsedBody.body);
+  if (!result.success) return invalidInput(result.error.issues);
+
+  const [entry] = await getDb()
+    .update(foodEntries)
+    .set(result.data)
     .where(and(eq(foodEntries.id, id), eq(foodEntries.userId, userId)))
     .returning();
   if (!entry) {
@@ -63,4 +84,5 @@ async function restoreFood(request: Request, userId: string) {
 }
 
 export const DELETE = withUser(deleteFood);
+export const PUT = withUser(updateFood);
 export const POST = withUser(restoreFood);

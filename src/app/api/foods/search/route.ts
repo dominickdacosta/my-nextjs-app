@@ -38,6 +38,7 @@ function mapFdcFood(food: FdcFood): FoodSearchResult {
   return {
     id: `fdc:${food.fdcId}`,
     source: "fdc",
+    nutritionSource: "verified",
     name: food.description,
     brand: food.brandName ?? null,
     servingSize: food.servingSize ?? null,
@@ -69,6 +70,7 @@ async function searchFoods(request: Request, userId: string) {
       carbsG: foodEntries.carbsG,
       fatG: foodEntries.fatG,
       fiberG: foodEntries.fiberG,
+      nutritionSource: foodEntries.nutritionSource,
     })
     .from(foodEntries)
     .where(and(eq(foodEntries.userId, userId), ilike(foodEntries.name, `%${query}%`)))
@@ -83,6 +85,7 @@ async function searchFoods(request: Request, userId: string) {
     history.push({
       id: `history:${match.id}`,
       source: "history",
+      nutritionSource: match.nutritionSource,
       name: match.name,
       brand: null,
       servingSize: match.servings,

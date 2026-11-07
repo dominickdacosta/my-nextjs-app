@@ -14,6 +14,14 @@ export type WorkoutSetRecord = {
   completed: boolean;
 };
 
+export type RunRoutePoint = {
+  latitude: number;
+  longitude: number;
+  recordedAt: string;
+  accuracyM: number;
+  altitudeM: number | null;
+};
+
 export type WorkoutRecord = {
   id: string;
   loggedOn: string;
@@ -21,13 +29,20 @@ export type WorkoutRecord = {
   type: "strength" | "cardio" | "walk" | "run" | "other";
   title: string | null;
   durationMin: number | null;
+  durationSeconds: number | null;
   distanceM: number | null;
   steps: number | null;
   avgHeartRate: number | null;
   caloriesBurned: number | null;
   caloriesEstimated: boolean;
+  avgPaceSecPerKm: number | null;
+  elevationM: number | null;
   perceivedEffort: number | null;
   notes: string | null;
+  routePoints: RunRoutePoint[] | null;
+  routePolyline: string | null;
+  source: string | null;
+  externalActivityId: string | null;
   sets: WorkoutSetRecord[];
 };
 

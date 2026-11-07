@@ -3,6 +3,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgTable,
   primaryKey,
@@ -172,6 +173,9 @@ export const foodEntries = pgTable(
     carbsG: decimal("carbs_g"),
     fatG: decimal("fat_g"),
     fiberG: decimal("fiber_g"),
+    nutritionSource: text("nutrition_source", {
+      enum: ["estimated", "verified", "manual"],
+    }).notNull().default("manual"),
     sugarG: decimal("sugar_g"),
     sodiumMg: decimal("sodium_mg"),
     notes: text("notes"),
@@ -224,6 +228,9 @@ export const savedMealItems = pgTable("saved_meal_items", {
   carbsG: decimal("carbs_g"),
   fatG: decimal("fat_g"),
   fiberG: decimal("fiber_g"),
+  nutritionSource: text("nutrition_source", {
+    enum: ["estimated", "verified", "manual"],
+  }).notNull().default("manual"),
   sugarG: decimal("sugar_g"),
   sodiumMg: decimal("sodium_mg"),
   ...timestamps(),
@@ -270,13 +277,27 @@ export const workouts = pgTable(
     title: text("title"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     durationMin: integer("duration_min"),
+    durationSeconds: integer("duration_seconds"),
     distanceM: integer("distance_m"),
     steps: integer("steps"),
     avgHeartRate: integer("avg_heart_rate"),
     caloriesBurned: integer("calories_burned"),
     caloriesEstimated: boolean("calories_estimated").notNull().default(false),
+    avgPaceSecPerKm: integer("avg_pace_sec_per_km"),
+    elevationM: integer("elevation_m"),
     perceivedEffort: integer("perceived_effort"),
     notes: text("notes"),
+    routePoints: jsonb("route_points").$type<
+      Array<{
+        latitude: number;
+        longitude: number;
+        recordedAt: string;
+        accuracyM: number;
+        altitudeM: number | null;
+      }>
+    >(),
+    routePolyline: text("route_polyline"),
+    externalActivityId: text("external_activity_id"),
     templateId: uuid("template_id").references(() => workoutTemplates.id, {
       onDelete: "set null",
     }),
@@ -288,8 +309,26 @@ export const workouts = pgTable(
       table.userId,
       table.loggedOn,
     ),
+    externalActivity: uniqueIndex("workouts_source_external_idx").on(
+      table.source,
+      table.externalActivityId,
+    ),
   }),
 );
+
+export const stravaConnections = pgTable("strava_connections", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  athleteId: text("athlete_id").notNull().unique(),
+  accessTokenEncrypted: text("access_token_encrypted").notNull(),
+  refreshTokenEncrypted: text("refresh_token_encrypted").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+  scope: text("scope").notNull(),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+  historyCursor: integer("history_cursor"),
+  ...timestamps(),
+});
 
 export const workoutSets = pgTable("workout_sets", {
   id: ownedId(),

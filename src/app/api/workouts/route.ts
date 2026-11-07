@@ -3,17 +3,24 @@ import {
   desc,
   eq,
   gte,
+  isNotNull,
   lte,
 } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { invalidInput, readJson, withUser } from "@/lib/api";
 import { getDb } from "@/lib/db/client";
-import { workoutSets, workouts } from "@/lib/db/schema";
+import { bodyMeasurements, workoutSets, workouts } from "@/lib/db/schema";
 import { isDateString } from "@/lib/health/dates";
 import {
   accessibleExerciseIds,
   workoutSetsFor,
 } from "@/lib/health/workout-queries";
+import {
+  averagePaceSecPerKm,
+  estimateWorkoutCalories,
+  routeDistanceM,
+  sanitizeRunRoutePoints,
+} from "@/lib/health/running";
 import { workoutSchema } from "@/lib/validation/workout";
 
 async function listWorkouts(request: Request, userId: string) {
@@ -64,7 +71,7 @@ async function createWorkout(request: Request, userId: string) {
   const result = workoutSchema.safeParse(parsedBody.body);
   if (!result.success) return invalidInput(result.error.issues);
 
-  const { sets, ...workoutValues } = result.data;
+  const { sets, startedAt, ...workoutValues } = result.data;
   const exerciseIds = sets.flatMap((set) => set.exerciseId ? [set.exerciseId] : []);
   const accessibleIds = await accessibleExerciseIds(exerciseIds, userId);
   if (accessibleIds.length !== new Set(exerciseIds).size) {
@@ -72,10 +79,78 @@ async function createWorkout(request: Request, userId: string) {
   }
 
   const db = getDb();
+  let routePoints = workoutValues.routePoints ?? null;
+  let distanceM = workoutValues.distanceM ?? null;
+  let durationSeconds = workoutValues.durationSeconds ?? null;
+  let avgPaceSecPerKm = workoutValues.avgPaceSecPerKm ?? null;
+  let elevationM = workoutValues.elevationM ?? null;
+
+  if (workoutValues.type === "run" && routePoints?.length) {
+    routePoints = sanitizeRunRoutePoints(routePoints);
+    distanceM = Math.round(routeDistanceM(routePoints));
+    durationSeconds ??= workoutValues.durationMin
+      ? workoutValues.durationMin * 60
+      : null;
+    if (durationSeconds !== null) {
+      avgPaceSecPerKm = averagePaceSecPerKm(durationSeconds, distanceM);
+      workoutValues.durationMin = Math.max(1, Math.round(durationSeconds / 60));
+    }
+    const altitudes = routePoints.flatMap((point) =>
+      point.altitudeM === null ? [] : [point.altitudeM],
+    );
+    if (altitudes.length > 1) {
+      elevationM = Math.round(
+        altitudes.slice(1).reduce((gain, altitude, index) => {
+          const delta = altitude - altitudes[index];
+          return gain + Math.max(delta, 0);
+        }, 0),
+      );
+    }
+  } else if (durationSeconds !== null && distanceM !== null) {
+    avgPaceSecPerKm ??= averagePaceSecPerKm(durationSeconds, distanceM);
+  }
+
+  let caloriesBurned = workoutValues.caloriesBurned ?? null;
+  let caloriesEstimated = workoutValues.caloriesEstimated;
+  if (caloriesBurned === null && workoutValues.durationMin) {
+    const [measurement] = await db
+      .select({ weightKg: bodyMeasurements.weightKg })
+      .from(bodyMeasurements)
+      .where(
+        and(
+          eq(bodyMeasurements.userId, userId),
+          lte(bodyMeasurements.loggedOn, workoutValues.loggedOn),
+          isNotNull(bodyMeasurements.weightKg),
+        ),
+      )
+      .orderBy(desc(bodyMeasurements.loggedOn), desc(bodyMeasurements.loggedAt))
+      .limit(1);
+    caloriesBurned = estimateWorkoutCalories(
+      workoutValues.type,
+      workoutValues.title ?? null,
+      workoutValues.durationMin,
+      measurement?.weightKg ?? null,
+    );
+    caloriesEstimated = caloriesBurned !== null;
+  }
+
   const workoutId = crypto.randomUUID();
   const [workout] = await db
     .insert(workouts)
-    .values({ ...workoutValues, id: workoutId, userId })
+    .values({
+      ...workoutValues,
+      startedAt: startedAt ? new Date(startedAt) : null,
+      durationSeconds,
+      distanceM,
+      avgPaceSecPerKm,
+      elevationM,
+      routePoints,
+      caloriesBurned,
+      caloriesEstimated,
+      source: "manual",
+      id: workoutId,
+      userId,
+    })
     .returning();
   let savedSets: Awaited<ReturnType<typeof workoutSetsFor>> = [];
   if (sets.length) {

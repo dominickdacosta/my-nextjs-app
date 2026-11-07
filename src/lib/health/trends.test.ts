@@ -1,17 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { aggregateTrendDays, countLogStreaks } from "./trends";
+import {
+  aggregateTrendDays,
+  compareLoggedTotals,
+  countLogStreaks,
+  summarizeStrengthProgress,
+} from "./trends";
 
 describe("health trends", () => {
   it("aggregates meals, hydration, exercise, and daily logs", () => {
     const days = aggregateTrendDays({
       dates: ["2026-03-15", "2026-03-16"],
       food: [
-        { loggedOn: "2026-03-15", servings: 2, kcal: 100, proteinG: 5 },
+        { loggedOn: "2026-03-15", servings: 2, kcal: 100, proteinG: 5, carbsG: 20, fatG: 3, fiberG: 4 },
         { loggedOn: "2026-03-15", servings: 1, kcal: 50, proteinG: null },
       ],
       water: [{ loggedOn: "2026-03-15", amountMl: 500 }],
       weights: [{ loggedOn: "2026-03-15", weightKg: 70 }],
-      workouts: [{ loggedOn: "2026-03-15", durationMin: 30 }],
+      workouts: [{
+        loggedOn: "2026-03-15",
+        durationMin: 30,
+        durationSeconds: 1800,
+        type: "run",
+        distanceM: 5000,
+      }],
       sleep: [{ loggedOn: "2026-03-15", durationMin: 420 }],
       activity: [{ loggedOn: "2026-03-15", steps: 4000, activeMinutes: 10 }],
       checkins: [{ loggedOn: "2026-03-15", mood: 4, energy: 3 }],
@@ -21,10 +32,16 @@ describe("health trends", () => {
     expect(days[0]).toMatchObject({
       caloriesKcal: 250,
       proteinG: 10,
+      carbsG: 40,
+      fatG: 6,
+      fiberG: 8,
       waterMl: 500,
       weightKg: 70,
       workoutCount: 1,
       activeMinutes: 40,
+      runCount: 1,
+      runDistanceM: 5000,
+      avgRunPaceSecPerKm: 360,
       sleepMinutes: 420,
       steps: 4000,
       mood: 4,
@@ -32,6 +49,65 @@ describe("health trends", () => {
       hasLog: true,
     });
     expect(days[1].hasLog).toBe(false);
+  });
+
+  it("compares logged periods and summarizes strength progression", () => {
+      const current = aggregateTrendDays({
+        dates: ["2026-03-16"],
+        food: [{ loggedOn: "2026-03-16", servings: 1, kcal: 500, proteinG: 30 }],
+        water: [],
+        weights: [],
+        workouts: [{ loggedOn: "2026-03-16", durationMin: 30, type: "run", distanceM: 3000 }],
+        sleep: [],
+        activity: [],
+        checkins: [],
+        vitals: [],
+      });
+      const previous = aggregateTrendDays({
+        dates: ["2026-03-15"],
+        food: [{ loggedOn: "2026-03-15", servings: 1, kcal: 500, proteinG: 20 }],
+        water: [],
+        weights: [],
+        workouts: [{ loggedOn: "2026-03-15", durationMin: 20, type: "run", distanceM: 2000 }],
+        sleep: [],
+        activity: [],
+        checkins: [],
+        vitals: [],
+      });
+      expect(compareLoggedTotals(current, previous)).toMatchObject({
+        currentProteinAverage: 30,
+        previousProteinAverage: 20,
+        currentRunDistanceM: 3000,
+        previousRunDistanceM: 2000,
+      });
+      expect(
+        summarizeStrengthProgress([
+          {
+            exerciseId: "squat",
+            exerciseName: "Squat",
+            loggedOn: "2026-03-15",
+            weightKg: 50,
+            reps: 8,
+            isWarmup: false,
+            completed: true,
+          },
+          {
+            exerciseId: "squat",
+            exerciseName: "Squat",
+            loggedOn: "2026-03-16",
+            weightKg: 55,
+            reps: 6,
+            isWarmup: false,
+            completed: true,
+          },
+        ]),
+      ).toEqual([{
+        exerciseId: "squat",
+        name: "Squat",
+        personalBestKg: 55,
+        latestBestKg: 55,
+        previousBestKg: 50,
+      }]);
   });
 
   it("counts current and best log streaks without requiring today's entry", () => {
