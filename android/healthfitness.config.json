@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "STEPS": "Read"
+  },
+  "disableBackgroundJobs": true,
+  "disableReadHealthDataHistory": true,
+  "privacyPolicyUrl": "https://github.com/dominickdacosta/my-nextjs-app/blob/develop/README.md#health-connect-steps"
+}
