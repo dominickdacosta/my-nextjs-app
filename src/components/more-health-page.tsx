@@ -25,7 +25,7 @@ import {
 } from "@/lib/health/units";
 
 type Panel = "body" | "sleep" | "vitals" | "activity" | "medications";
-type QuickKind = "sleep" | "vitals" | "meds" | "steps" | null;
+type QuickKind = "sleep" | "vitals" | "meds" | null;
 type VitalKind =
   | "blood_pressure"
   | "heart_rate"
@@ -145,7 +145,6 @@ export default function MoreHealthPage() {
   const [vitalUnit, setVitalUnit] = useState("mmHg");
   const [vitalContext, setVitalContext] = useState("");
 
-  const [steps, setSteps] = useState("");
   const [activeMinutes, setActiveMinutes] = useState("");
   const [distance, setDistance] = useState("");
 
@@ -188,7 +187,6 @@ export default function MoreHealthPage() {
       sleep: "sleep",
       vitals: "vitals",
       meds: "medications",
-      steps: "activity",
     };
     if (moreQuickKind) setActivePanel(panel[moreQuickKind]);
     setMoreQuickOpen(false);
@@ -351,11 +349,9 @@ export default function MoreHealthPage() {
           : Math.round(milesToMeters(Number(distance)));
     void saveAndRefresh("/api/activity", {
       loggedOn: dayData.date,
-      steps: optionalNumber(steps) ?? dayData.activity?.steps ?? 0,
       activeMinutes:
         optionalNumber(activeMinutes) ?? dayData.activity?.activeMinutes ?? 0,
       distanceM: distanceMeters,
-      source: "manual",
     });
   }
 
@@ -604,9 +600,17 @@ export default function MoreHealthPage() {
       {activePanel === "activity" ? (
         <section className="mt-5 rounded-3xl border border-line bg-card p-5 sm:p-7">
           <h2 className="text-xl font-semibold">Daily activity</h2>
-          <p className="mt-1 text-sm text-muted">Use Health Connect for steps; active minutes and distance can still be entered manually.</p>
+          <p className="mt-1 text-sm text-muted">Steps are synced from Google Health Connect. Active minutes and distance can still be entered manually.</p>
           <div className="mt-5 rounded-2xl border border-line bg-paper p-4">
             <h3 className="font-semibold">Google Health Connect</h3>
+            <p className="mt-1 text-sm text-muted">
+              Steps for {day.date}:{" "}
+              <span className="font-semibold text-ink">
+                {day.activity?.source === "health-connect"
+                  ? day.activity.steps.toLocaleString()
+                  : "Not synced"}
+              </span>
+            </p>
             {healthConnectAvailableOnDevice ? (
               <>
                 <p className="mt-1 text-sm text-muted">
@@ -652,8 +656,8 @@ export default function MoreHealthPage() {
               </>
             ) : (
               <p className="mt-1 text-sm text-muted">
-                Automatic steps are available in the Android app. Enter steps
-                manually below on web or unsupported devices.
+                Connect Health Connect in the Vitals Android app to sync steps.
+                This page displays the latest synced total.
               </p>
             )}
             {healthConnectError ? (
@@ -663,7 +667,6 @@ export default function MoreHealthPage() {
             ) : null}
           </div>
           <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={submitActivity}>
-            <HealthInput label="Steps" min="0" max="100000" onChange={setSteps} step="1" type="number" value={steps || (day.activity ? String(day.activity.steps) : "")} />
             <HealthInput label="Active minutes" min="0" max="1440" onChange={setActiveMinutes} step="1" type="number" value={activeMinutes || (day.activity ? String(day.activity.activeMinutes) : "")} />
             <HealthInput label={`Distance (${unitSystem === "metric" ? "km" : "mi"})`} min="0" onChange={setDistance} step="0.01" type="number" value={distance} />
             <button className="min-h-12 rounded-xl bg-brand px-5 font-semibold text-white sm:col-span-2 sm:justify-self-start" type="submit">Save activity</button>

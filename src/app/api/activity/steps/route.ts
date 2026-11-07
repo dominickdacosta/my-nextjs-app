@@ -40,6 +40,7 @@ export const POST = withUser(async (request, userId) => {
       target: [dailyActivity.userId, dailyActivity.loggedOn],
       set: {
         steps: result.data.steps,
+        source: "health-connect",
         loggedAt: now,
         updatedAt: now,
       },

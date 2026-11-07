@@ -42,10 +42,8 @@ async function saveActivity(request: Request, userId: string) {
     .onConflictDoUpdate({
       target: [dailyActivity.userId, dailyActivity.loggedOn],
       set: {
-        steps: result.data.steps,
         activeMinutes: result.data.activeMinutes,
         distanceM: result.data.distanceM,
-        source: result.data.source,
         loggedAt: now,
         updatedAt: now,
       },

@@ -105,8 +105,8 @@ The Android companion reads today's aggregated steps from Health Connect after
 the user grants read-only step access. It syncs on app launch and resume; Android
 does not guarantee background app execution, so steps may not sync while Vitals
 is closed. The sync updates only daily steps and preserves manually logged
-active minutes and distance. On web and unsupported devices, steps can still be
-entered manually.
+active minutes and distance. The web app displays the latest synced step total;
+step counts are not entered manually.
 
 This repository includes a Capacitor Android shell for local development. It
 loads the Next.js app from `CAPACITOR_SERVER_URL` because the app's authenticated

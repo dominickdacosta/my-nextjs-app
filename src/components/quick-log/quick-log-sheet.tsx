@@ -17,7 +17,6 @@ const logOptions = [
   { kind: "cardio", label: "Walk / Run", icon: "🚶" },
   { kind: "weight", label: "Weight", icon: "⚖️" },
   { kind: "sleep", label: "Sleep", icon: "😴" },
-  { kind: "steps", label: "Steps", icon: "👟" },
   { kind: "mood", label: "Mood", icon: "🙂" },
   { kind: "vitals", label: "Vitals", icon: "❤️" },
   { kind: "meds", label: "Meds", icon: "💊" },
@@ -52,7 +51,7 @@ export default function QuickLogSheet({
   date: string | null;
   initialKind: "weight" | "water" | "mood" | null;
   onFoodClick: () => void;
-  onMoreClick: (kind: "sleep" | "vitals" | "meds" | "steps") => void;
+  onMoreClick: (kind: "sleep" | "vitals" | "meds") => void;
   onTrainClick: (type: TrainingType) => void;
   onClose: () => void;
   onSubmit: SaveLog;
@@ -121,8 +120,7 @@ export default function QuickLogSheet({
     if (
       nextKind === "sleep" ||
       nextKind === "vitals" ||
-      nextKind === "meds" ||
-      nextKind === "steps"
+      nextKind === "meds"
     ) {
       onMoreClick(nextKind);
       return;

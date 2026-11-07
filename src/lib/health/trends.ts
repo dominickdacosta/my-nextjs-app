@@ -54,6 +54,7 @@ export type TrendRows = {
     loggedOn: string;
     steps: number;
     activeMinutes: number;
+    source: string | null;
   }>;
   checkins: Array<{
     loggedOn: string;
@@ -143,7 +144,7 @@ export function aggregateTrendDays(rows: TrendRows): TrendDay[] {
   for (const entry of rows.activity) {
     const day = days.get(entry.loggedOn);
     if (!day) continue;
-    day.steps += entry.steps;
+    if (entry.source === "health-connect") day.steps += entry.steps;
     day.activeMinutes += entry.activeMinutes;
     day.hasLog = true;
   }

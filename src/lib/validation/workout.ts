@@ -27,7 +27,6 @@ export const workoutSchema = z.object({
   durationMin: z.number().int().min(1).max(1440).nullable().optional(),
   durationSeconds: z.number().int().min(1).max(86400).nullable().optional(),
   distanceM: z.number().int().min(0).max(1000000).nullable().optional(),
-  steps: z.number().int().min(0).max(100000).nullable().optional(),
   avgHeartRate: z.number().int().min(30).max(250).nullable().optional(),
   caloriesBurned: z.number().int().min(0).max(10000).nullable().optional(),
   caloriesEstimated: z.boolean().default(false),
@@ -46,6 +45,7 @@ const workoutSetRestoreSchema = workoutSetSchema.extend({
 
 export const workoutRestoreSchema = workoutSchema.extend({
   loggedAt: z.string().datetime(),
+  steps: z.number().int().min(0).max(100000).nullable().optional(),
   source: z.string().max(40).nullable().optional(),
   externalActivityId: z.string().max(100).nullable().optional(),
   sets: z.array(workoutSetRestoreSchema).max(100).default([]),

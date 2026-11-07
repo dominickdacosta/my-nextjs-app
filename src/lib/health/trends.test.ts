@@ -24,7 +24,12 @@ describe("health trends", () => {
         distanceM: 5000,
       }],
       sleep: [{ loggedOn: "2026-03-15", durationMin: 420 }],
-      activity: [{ loggedOn: "2026-03-15", steps: 4000, activeMinutes: 10 }],
+      activity: [{
+        loggedOn: "2026-03-15",
+        steps: 4000,
+        activeMinutes: 10,
+        source: "health-connect",
+      }],
       checkins: [{ loggedOn: "2026-03-15", mood: 4, energy: 3 }],
       vitals: [],
     });
@@ -49,6 +54,28 @@ describe("health trends", () => {
       hasLog: true,
     });
     expect(days[1].hasLog).toBe(false);
+  });
+
+  it("excludes manually sourced steps from trends", () => {
+    const [day] = aggregateTrendDays({
+      dates: ["2026-03-15"],
+      food: [],
+      water: [],
+      weights: [],
+      workouts: [],
+      sleep: [],
+      activity: [{
+        loggedOn: "2026-03-15",
+        steps: 7000,
+        activeMinutes: 20,
+        source: "manual",
+      }],
+      checkins: [],
+      vitals: [],
+    });
+
+    expect(day.steps).toBe(0);
+    expect(day.activeMinutes).toBe(20);
   });
 
   it("compares logged periods and summarizes strength progression", () => {
