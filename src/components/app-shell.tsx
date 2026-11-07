@@ -34,7 +34,7 @@ type AppContextValue = {
   moreQuickKind: "sleep" | "vitals" | "meds" | null;
   moreQuickOpen: boolean;
   setMoreQuickOpen: (open: boolean) => void;
-  openQuickLog: (kind?: "weight" | "water" | "mood") => void;
+  openQuickLog: (kind?: "weight" | "water") => void;
   submitLog: (input: QuickLogInput) => Promise<void>;
 };
 
@@ -77,7 +77,7 @@ export default function AppShell({
   const [moreQuickOpen, setMoreQuickOpen] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [initialLogKind, setInitialLogKind] = useState<
-    "weight" | "water" | "mood" | null
+    "weight" | "water" | null
   >(null);
   const [toast, setToast] = useState("");
 

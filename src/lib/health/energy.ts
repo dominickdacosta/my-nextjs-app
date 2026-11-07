@@ -99,6 +99,14 @@ export function isBelowCalorieFloor(caloriesKcal: number, sex: Sex): boolean {
   return caloriesKcal < calorieFloor(sex);
 }
 
+export function estimateCaloriesFromSteps(steps: number): number {
+  if (!Number.isSafeInteger(steps) || steps < 0) {
+    throw new RangeError("Steps must be a non-negative whole number.");
+  }
+  // This general estimate varies with body size, stride, and walking pace.
+  return Math.round(steps * 0.04);
+}
+
 export function defaultMacros(
   caloriesKcal: number,
   weightKg: number,

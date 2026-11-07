@@ -21,8 +21,8 @@ import {
   formatWeight,
   inchesToCm,
   lbToKg,
-  milesToMeters,
 } from "@/lib/health/units";
+import { estimateCaloriesFromSteps } from "@/lib/health/energy";
 
 type Panel = "body" | "sleep" | "vitals" | "activity" | "medications";
 type QuickKind = "sleep" | "vitals" | "meds" | null;
@@ -144,9 +144,6 @@ export default function MoreHealthPage() {
   const [vitalSecondary, setVitalSecondary] = useState("");
   const [vitalUnit, setVitalUnit] = useState("mmHg");
   const [vitalContext, setVitalContext] = useState("");
-
-  const [activeMinutes, setActiveMinutes] = useState("");
-  const [distance, setDistance] = useState("");
 
   const [medicationName, setMedicationName] = useState("");
   const [medicationDose, setMedicationDose] = useState("");
@@ -336,22 +333,6 @@ export default function MoreHealthPage() {
       unit: vitalUnit,
       context: vitalContext.trim() || null,
       measuredAt: new Date().toISOString(),
-    });
-  }
-
-  function submitActivity(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const distanceMeters =
-      distance.trim() === ""
-        ? dayData.activity?.distanceM ?? 0
-        : unitSystem === "metric"
-          ? Math.round(Number(distance) * 1000)
-          : Math.round(milesToMeters(Number(distance)));
-    void saveAndRefresh("/api/activity", {
-      loggedOn: dayData.date,
-      activeMinutes:
-        optionalNumber(activeMinutes) ?? dayData.activity?.activeMinutes ?? 0,
-      distanceM: distanceMeters,
     });
   }
 
@@ -599,8 +580,8 @@ export default function MoreHealthPage() {
 
       {activePanel === "activity" ? (
         <section className="mt-5 rounded-3xl border border-line bg-card p-5 sm:p-7">
-          <h2 className="text-xl font-semibold">Daily activity</h2>
-          <p className="mt-1 text-sm text-muted">Steps are synced from Google Health Connect. Active minutes and distance can still be entered manually.</p>
+          <h2 className="text-xl font-semibold">Steps</h2>
+          <p className="mt-1 text-sm text-muted">Your steps sync from Google Health Connect. No manual activity entry is needed.</p>
           <div className="mt-5 rounded-2xl border border-line bg-paper p-4">
             <h3 className="font-semibold">Google Health Connect</h3>
             <p className="mt-1 text-sm text-muted">
@@ -611,6 +592,14 @@ export default function MoreHealthPage() {
                   : "Not synced"}
               </span>
             </p>
+            {day.activity?.source === "health-connect" ? (
+              <p className="mt-2 text-sm text-muted">
+                Estimated calories burned:{" "}
+                {day.profile.hideCalories
+                  ? "Hidden in calorie settings"
+                  : `~${estimateCaloriesFromSteps(day.activity.steps)} kcal`}
+              </p>
+            ) : null}
             {healthConnectAvailableOnDevice ? (
               <>
                 <p className="mt-1 text-sm text-muted">
@@ -666,11 +655,6 @@ export default function MoreHealthPage() {
               </p>
             ) : null}
           </div>
-          <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={submitActivity}>
-            <HealthInput label="Active minutes" min="0" max="1440" onChange={setActiveMinutes} step="1" type="number" value={activeMinutes || (day.activity ? String(day.activity.activeMinutes) : "")} />
-            <HealthInput label={`Distance (${unitSystem === "metric" ? "km" : "mi"})`} min="0" onChange={setDistance} step="0.01" type="number" value={distance} />
-            <button className="min-h-12 rounded-xl bg-brand px-5 font-semibold text-white sm:col-span-2 sm:justify-self-start" type="submit">Save activity</button>
-          </form>
         </section>
       ) : null}
 

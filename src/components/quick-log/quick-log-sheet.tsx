@@ -17,7 +17,7 @@ const logOptions = [
   { kind: "cardio", label: "Walk / Run", icon: "🚶" },
   { kind: "weight", label: "Weight", icon: "⚖️" },
   { kind: "sleep", label: "Sleep", icon: "😴" },
-  { kind: "mood", label: "Mood", icon: "🙂" },
+  { kind: "energy", label: "Energy", icon: "⚡" },
   { kind: "vitals", label: "Vitals", icon: "❤️" },
   { kind: "meds", label: "Meds", icon: "💊" },
 ] as const;
@@ -27,7 +27,7 @@ type SaveLog = (input: QuickLogInput) => Promise<void>;
 type QuickLogDraft =
   | { kind: "water"; amountMl: number }
   | { kind: "weight"; weightKg: number }
-  | { kind: "checkin"; mood?: number; energy?: number };
+  | { kind: "checkin"; energy: number };
 
 async function getLogDate(date: string | null): Promise<string> {
   if (date) return date;
@@ -49,7 +49,7 @@ export default function QuickLogSheet({
   unitSystem,
 }: {
   date: string | null;
-  initialKind: "weight" | "water" | "mood" | null;
+  initialKind: "weight" | "water" | null;
   onFoodClick: () => void;
   onMoreClick: (kind: "sleep" | "vitals" | "meds") => void;
   onTrainClick: (type: TrainingType) => void;
@@ -63,7 +63,6 @@ export default function QuickLogSheet({
   const [waterAmountMl, setWaterAmountMl] = useState(250);
   const [waterInput, setWaterInput] = useState("250");
   const [weightInput, setWeightInput] = useState("");
-  const [mood, setMood] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -87,10 +86,6 @@ export default function QuickLogSheet({
       setWaterInput(unitSystem === "metric" ? "250" : mlToFlOz(250).toFixed(1));
     }
     if (initialKind === "weight") setWeightInput("");
-    if (initialKind === "mood") {
-      setMood(null);
-      setEnergy(null);
-    }
   }, [initialKind, open, unitSystem]);
 
   async function save(input: QuickLogDraft) {
@@ -134,10 +129,7 @@ export default function QuickLogSheet({
       );
     }
     if (nextKind === "weight") setWeightInput("");
-    if (nextKind === "mood") {
-      setMood(null);
-      setEnergy(null);
-    }
+    if (nextKind === "energy") setEnergy(null);
   }
 
   return (
@@ -287,28 +279,21 @@ export default function QuickLogSheet({
           </form>
         ) : null}
 
-        {kind === "mood" ? (
+        {kind === "energy" ? (
           <form
             className="mt-7 grid gap-6"
             onSubmit={(event) => {
               event.preventDefault();
-              if (mood === null && energy === null) {
-                setError("Choose a mood or energy level.");
+              if (energy === null) {
+                setError("Choose an energy level.");
                 return;
               }
               void save({
                 kind: "checkin",
-                ...(mood !== null && { mood }),
-                ...(energy !== null && { energy }),
+                energy,
               });
             }}
           >
-            <RatingPicker
-              label="Mood"
-              onChange={setMood}
-              selected={mood}
-              values={["😞", "🙁", "😐", "🙂", "😄"]}
-            />
             <RatingPicker
               label="Energy"
               onChange={setEnergy}
@@ -317,15 +302,15 @@ export default function QuickLogSheet({
             />
             <button
               className="min-h-12 rounded-xl bg-brand px-5 font-semibold text-white"
-              disabled={saving || (mood === null && energy === null)}
+              disabled={saving || energy === null}
               type="submit"
             >
-              {saving ? "Saving..." : "Save check-in"}
+              {saving ? "Saving..." : "Save energy"}
             </button>
           </form>
         ) : null}
 
-        {kind && !["water", "weight", "mood"].includes(kind) ? (
+        {kind && !["water", "weight", "energy"].includes(kind) ? (
           <div className="mt-7 rounded-2xl border border-line bg-card p-5 text-sm text-muted">
             This quick log is coming soon. Your other daily logs are ready to use.
           </div>

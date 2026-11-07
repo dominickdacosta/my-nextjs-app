@@ -140,7 +140,6 @@ export default function TrendsPage() {
   const averageSleep = average(sleepDays);
   const averageWater = average(data.days.map((day) => day.waterMl));
   const averageSteps = average(data.days.map((day) => day.steps));
-  const averageMood = average(data.days.map((day) => day.mood));
   const averageCalories = average(foodDays.map((day) => day.caloriesKcal));
   const averageProtein = average(foodDays.map((day) => day.proteinG));
   const averageCarbs = average(foodDays.map((day) => day.carbsG));
@@ -384,7 +383,7 @@ export default function TrendsPage() {
         </section>
       ) : null}
 
-      <section aria-label="Daily averages" className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Daily averages" className="mt-4 grid gap-4 sm:grid-cols-2">
         <SummaryCard
           label="Average water"
           value={averageWater === null ? "—" : formatVolume(averageWater, data.profile.unitSystem)}
@@ -394,11 +393,6 @@ export default function TrendsPage() {
           label="Average steps"
           value={averageSteps === null ? "—" : Math.round(averageSteps).toLocaleString()}
           detail={`${stepDays.length} days with step logs`}
-        />
-        <SummaryCard
-          label="Average mood"
-          value={averageMood === null ? "—" : `${averageMood.toFixed(1)} / 5`}
-          detail="On days with a mood check-in"
         />
       </section>
 

@@ -68,7 +68,11 @@ async function getDay(request: Request, userId: string) {
       )
       .orderBy(desc(bodyMeasurements.loggedAt)),
     db
-      .select()
+      .select({
+        id: dailyCheckins.id,
+        loggedOn: dailyCheckins.loggedOn,
+        energy: dailyCheckins.energy,
+      })
       .from(dailyCheckins)
       .where(
         and(
